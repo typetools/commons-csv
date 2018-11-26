@@ -17,6 +17,8 @@
 
 package org.apache.commons.csv;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import static org.apache.commons.csv.Constants.CR;
 import static org.apache.commons.csv.Constants.LF;
 import static org.apache.commons.csv.Constants.SP;
@@ -166,7 +168,7 @@ public final class CSVPrinter implements Flushable, Closeable {
      * @throws IOException
      *             If an I/O error occurs
      */
-    public void print(final Object value) throws IOException {
+    public void print(final @Nullable Object value) throws IOException {
         format.print(value, out, newRecord);
         newRecord = false;
     }
@@ -192,6 +194,7 @@ public final class CSVPrinter implements Flushable, Closeable {
      * @throws IOException
      *             If an I/O error occurs
      */
+    @SuppressWarnings("nullness") // getCommentMarker() isn't affected by side effects in this method
     public void printComment(final String comment) throws IOException {
         if (!format.isCommentMarkerSet()) {
             return;
@@ -310,7 +313,7 @@ public final class CSVPrinter implements Flushable, Closeable {
      * @throws IOException
      *             If an I/O error occurs
      */
-    public void printRecords(final Iterable<?> values) throws IOException {
+    public void printRecords(final Iterable<? extends @NonNull Object> values) throws IOException {
         for (final Object value : values) {
             if (value instanceof Object[]) {
                 this.printRecord((Object[]) value);

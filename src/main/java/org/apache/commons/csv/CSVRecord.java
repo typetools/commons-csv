@@ -17,6 +17,9 @@
 
 package org.apache.commons.csv;
 
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
+import org.checkerframework.checker.nullness.qual.EnsuresKeyForIf;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -37,10 +40,10 @@ public final class CSVRecord implements Serializable, Iterable<String> {
     private final long characterPosition;
 
     /** The accumulated comments (if any) */
-    private final String comment;
+    private final @Nullable String comment;
 
     /** The column name to index mapping. */
-    private final Map<String, Integer> mapping;
+    private final @Nullable Map<String, Integer> mapping;
 
     /** The record number. */
     private final long recordNumber;
@@ -48,7 +51,7 @@ public final class CSVRecord implements Serializable, Iterable<String> {
     /** The values of the record */
     private final String[] values;
 
-    CSVRecord(final String[] values, final Map<String, Integer> mapping, final String comment, final long recordNumber,
+    CSVRecord(final String @Nullable [] values, final @Nullable Map<String, Integer> mapping, final @Nullable String comment, final long recordNumber,
             final long characterPosition) {
         this.recordNumber = recordNumber;
         this.values = values != null ? values : EMPTY_STRING_ARRAY;
@@ -64,7 +67,7 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      *            an enum
      * @return the String at the given enum String
      */
-    public String get(final Enum<?> e) {
+    public @Nullable String get(final Enum<?> e) {
         return get(e.toString());
     }
 
@@ -75,7 +78,7 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      *            a column index (0-based)
      * @return the String at the given index
      */
-    public String get(final int i) {
+    public @Nullable String get(final int i) {
         return values[i];
     }
 
@@ -92,7 +95,7 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      * @see #isConsistent()
      * @see CSVFormat#withNullString(String)
      */
-    public String get(final String name) {
+    public @Nullable String get(final String name) {
         if (mapping == null) {
             throw new IllegalStateException(
                 "No header mapping was specified, the record values can't be accessed by name");
@@ -129,7 +132,7 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      *
      * @return the comment for this record, or null if no comment for this record is available.
      */
-    public String getComment() {
+    public @Nullable String getComment() {
         return comment;
     }
 
@@ -182,6 +185,8 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      *            the name of the column to be retrieved.
      * @return whether a given column is mapped.
      */
+    @EnsuresKeyForIf(expression="#1", map="mapping", result=true)
+    @EnsuresNonNullIf(expression="mapping", result=true)
     public boolean isMapped(final String name) {
         return mapping != null && mapping.containsKey(name);
     }

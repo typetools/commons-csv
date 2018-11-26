@@ -17,6 +17,9 @@
 
 package org.apache.commons.csv;
 
+import org.checkerframework.dataflow.qual.Pure;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import static org.apache.commons.csv.Token.Type.TOKEN;
 
 import java.io.Closeable;
@@ -282,14 +285,14 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
     private final CSVFormat format;
 
     /** A mapping of column names to column indices */
-    private final Map<String, Integer> headerMap;
+    private final @Nullable Map<String, Integer> headerMap;
 
     private final Lexer lexer;
 
     private final CSVRecordIterator csvRecordIterator;
 
     /** A record buffer for getRecord(). Grows as necessary and is reused. */
-    private final List<String> recordList = new ArrayList<>();
+    private final List<@Nullable String> recordList = new ArrayList<>();
 
     /**
      * The next record number to assign.
@@ -404,7 +407,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * @return the first end-of-line string
      * @since 1.5
      */
-    public String getFirstEndOfLine() {
+    public @Nullable String getFirstEndOfLine() {
         return lexer.getFirstEol();
     }
 
@@ -415,7 +418,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * </p>
      * @return a copy of the header map that iterates in column order.
      */
-    public Map<String, Integer> getHeaderMap() {
+    public @Nullable Map<String, Integer> getHeaderMap() {
         return this.headerMap == null ? null : new LinkedHashMap<>(this.headerMap);
     }
 
@@ -460,7 +463,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * @return null if the format has no header.
      * @throws IOException if there is a problem reading the header or skipping the first record
      */
-    private Map<String, Integer> initializeHeader() throws IOException {
+    private @Nullable Map<String, Integer> initializeHeader() throws IOException {
         Map<String, Integer> hdrMap = null;
         final String[] formatHeader = this.format.getHeader();
         if (formatHeader != null) {
@@ -526,9 +529,9 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
     }
 
     class CSVRecordIterator implements Iterator<CSVRecord> {
-        private CSVRecord current;
+        private @Nullable CSVRecord current;
 
-        private CSVRecord getNextRecord() {
+        private @Nullable CSVRecord getNextRecord() {
             try {
                 return CSVParser.this.nextRecord();
             } catch (final IOException e) {
@@ -581,7 +584,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * @throws IOException
      *             on parse error or input read-failure
      */
-    CSVRecord nextRecord() throws IOException {
+    @Nullable CSVRecord nextRecord() throws IOException {
         CSVRecord result = null;
         this.recordList.clear();
         StringBuilder sb = null;
@@ -620,7 +623,9 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
         if (!this.recordList.isEmpty()) {
             this.recordNumber++;
             final String comment = sb == null ? null : sb.toString();
-            result = new CSVRecord(this.recordList.toArray(new String[this.recordList.size()]), this.headerMap, comment,
+            @SuppressWarnings("nullness")  // TODO: possible bug in Commons CSV: recordList can contain nulls, but CSVRecord takes an array of non-null Strings
+            String[] recordListArray = this.recordList.toArray(new String[this.recordList.size()]);
+            result = new CSVRecord(recordListArray, this.headerMap, comment,
                     this.recordNumber, startCharPosition);
         }
         return result;

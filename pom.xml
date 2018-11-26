@@ -62,6 +62,17 @@ CSV files of various types.
       <version>1.4.196</version>
       <scope>test</scope>
     </dependency>
+    <!-- Annotations from the Checker Framework: nullness, interning, locking, ... -->
+    <dependency>
+      <groupId>org.checkerframework</groupId>
+      <artifactId>checker-qual</artifactId>
+      <version>2.5.7</version>
+    </dependency>
+    <dependency>
+      <groupId>org.checkerframework</groupId>
+      <artifactId>jdk8</artifactId>
+      <version>2.5.7</version>
+    </dependency>
   </dependencies>
 
   <developers>
@@ -158,6 +169,9 @@ CSV files of various types.
     <commons.scmPubUrl>https://svn.apache.org/repos/infra/websites/production/commons/content/proper/${project.artifactId}</commons.scmPubUrl>
     <!-- Fix for COMMONSSITE-125 remove once commons-parent 48 has been released -->
     <commons.osgi.symbolicName>org.apache.commons.${commons.componentid}</commons.osgi.symbolicName>
+
+    <!-- These properties will be set by the Maven Dependency plugin -->
+    <annotatedJdk>${org.checkerframework:jdk8:jar}</annotatedJdk>
   </properties>
 
   <build>
@@ -183,6 +197,30 @@ CSV files of various types.
           <testExcludes>
             <testExclude>**/*Benchmark*</testExclude>
           </testExcludes>
+
+	  <source>1.8</source>
+	  <target>1.8</target>
+	  <compilerArguments>
+	    <Xmaxerrs>10000</Xmaxerrs>
+	    <Xmaxwarns>10000</Xmaxwarns>
+	  </compilerArguments>
+	  <annotationProcessorPaths>
+	    <path>
+	      <groupId>org.checkerframework</groupId>
+	      <artifactId>checker</artifactId>
+	      <version>2.5.7</version>
+	    </path>
+	  </annotationProcessorPaths>
+	  <annotationProcessors>
+	    <!-- Add all the checkers you want to enable here -->
+	    <annotationProcessor>org.checkerframework.checker.nullness.NullnessChecker</annotationProcessor>
+	  </annotationProcessors>
+	  <compilerArgs>
+	    <!-- location of the annotated JDK, which comes from a Maven dependency -->
+	    <arg>-Xbootclasspath/p:${annotatedJdk}</arg>
+	    <!-- -Awarns turns type-checking warnings into errors. -->
+	    <!-- <arg>-Awarns</arg> -->
+	  </compilerArgs>
         </configuration>
       </plugin>
       <plugin>
@@ -199,6 +237,7 @@ CSV files of various types.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
+          <useSystemClassLoader>false</useSystemClassLoader>
           <excludes>
             <exclude>**/perf/PerformanceTest.java</exclude>
           </excludes>
@@ -242,6 +281,19 @@ CSV files of various types.
             <exclude>src/test/resources/ferc.gov/transaction.txt</exclude>
           </excludes>
         </configuration>
+      </plugin>
+
+      <plugin>
+	<!-- This plugin will set properties values using dependency information -->
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-dependency-plugin</artifactId>
+	<executions>
+	  <execution>
+	    <goals>
+	      <goal>properties</goal>
+	    </goals>
+	  </execution>
+	</executions>
       </plugin>
 
     </plugins>

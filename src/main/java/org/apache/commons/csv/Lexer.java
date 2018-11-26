@@ -17,6 +17,8 @@
 
 package org.apache.commons.csv;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import static org.apache.commons.csv.Constants.BACKSPACE;
 import static org.apache.commons.csv.Constants.CR;
 import static org.apache.commons.csv.Constants.END_OF_STREAM;
@@ -58,9 +60,9 @@ final class Lexer implements Closeable {
 
     /** The input stream */
     private final ExtendedBufferedReader reader;
-    private String firstEol;
+    private @MonotonicNonNull String firstEol;
 
-    String getFirstEol(){
+    @Nullable String getFirstEol(){
         return firstEol;
     }
 
@@ -294,7 +296,7 @@ final class Lexer implements Closeable {
         }
     }
 
-    private char mapNullToDisabled(final Character c) {
+    private static char mapNullToDisabled(final @Nullable Character c) {
         return c == null ? DISABLED : c.charValue();
     }
 

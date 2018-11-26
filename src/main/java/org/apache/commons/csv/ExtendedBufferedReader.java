@@ -17,6 +17,7 @@
 
 package org.apache.commons.csv;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import static org.apache.commons.csv.Constants.CR;
 import static org.apache.commons.csv.Constants.END_OF_STREAM;
 import static org.apache.commons.csv.Constants.LF;
@@ -118,7 +119,7 @@ final class ExtendedBufferedReader extends BufferedReader {
      * @return the line that was read, or null if reached EOF.
      */
     @Override
-    public String readLine() throws IOException {
+    public @Nullable String readLine() throws IOException {
         final String line = super.readLine();
 
         if (line != null) {
