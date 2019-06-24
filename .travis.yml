@@ -17,11 +17,13 @@ language: java
 
 jdk:
   - oraclejdk8
-  - oraclejdk11
+#  - oraclejdk11
   - openjdk8
-  - openjdk11
-  - openjdk12
-  - openjdk-ea
+#  - openjdk11
+#  - openjdk12
+#  - openjdk-ea
+
+install: true
 
 script:
   - mvn -B -Dmaven.test.skip=true package
