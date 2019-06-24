@@ -17,6 +17,8 @@
 
 package org.apache.commons.csv;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
