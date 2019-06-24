@@ -250,6 +250,11 @@ CSV files of various types.
         <!-- Should agree with config in reporting section -->
         <configuration>
           <excludes>
+	    <!-- Generated file. -->
+            <exclude>TAGS</exclude>
+	    <!-- Checker Framework support files -->
+            <exclude>README-typetools.md</exclude>
+            <exclude>cfMavenCentral.xml</exclude>
             <!-- These files are used as test data and test result specifications. -->
             <exclude>src/test/resources/csv-167/sample1.csv</exclude>
             <exclude>src/test/resources/CSV-198/optd_por_public.csv</exclude>
