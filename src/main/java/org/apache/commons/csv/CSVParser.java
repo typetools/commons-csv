@@ -17,9 +17,13 @@
 
 package org.apache.commons.csv;
 
-import org.checkerframework.dataflow.qual.Pure;
+import org.checkerframework.checker.initialization.qual.Initialized;
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+import org.checkerframework.dataflow.qual.Pure;
+
 import static org.apache.commons.csv.Token.Type.TOKEN;
 
 import java.io.Closeable;
@@ -138,9 +142,10 @@ import java.util.TreeMap;
 public final class CSVParser implements Iterable<CSVRecord>, Closeable {
 
     class CSVRecordIterator implements Iterator<CSVRecord> {
-        private CSVRecord current;
+        private @Nullable CSVRecord current;
 
-        private CSVRecord getNextRecord() {
+        @SuppressWarnings("contracts.precondition.not.satisfied")  // TODO: how to express @RequiresNonNull({"CSVParser.this.format"})
+        private @Nullable CSVRecord getNextRecord() {
             try {
                 return CSVParser.this.nextRecord();
             } catch (final IOException e) {
@@ -419,7 +424,8 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
         this.recordNumber = recordNumber - 1;
     }
 
-    private void addRecordValue(final boolean lastRecord) {
+    @RequiresNonNull("format")
+    private void addRecordValue(@UnknownInitialization(Object.class) CSVParser this, final boolean lastRecord) {
         final String input = this.reusableToken.content.toString();
         final String inputClean = this.format.getTrim() ? input.trim() : input;
         if (lastRecord && inputClean.isEmpty() && this.format.getTrailingDelimiter()) {
@@ -442,7 +448,8 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
         }
     }
 
-    private Map<String, Integer> createEmptyHeaderMap() {
+    @RequiresNonNull("this.format")
+    private Map<String, Integer> createEmptyHeaderMap(@UnknownInitialization(Object.class) CSVParser this) {
         return this.format.getIgnoreHeaderCase() ?
                 new TreeMap<>(String.CASE_INSENSITIVE_ORDER) :
                 new LinkedHashMap<>();
@@ -455,14 +462,14 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
         /**
          * Header column positions (0-based)
          */
-        final Map<String, Integer> headerMap;
+        final @Nullable Map<String, Integer> headerMap;
 
         /**
          * Header names in column order
          */
         final List<String> headerNames;
 
-        Headers(final Map<String, Integer> headerMap, final List<String> headerNames) {
+        Headers(final @Nullable Map<String, Integer> headerMap, final List<String> headerNames) {
             this.headerMap = headerMap;
             this.headerNames = headerNames;
         }
@@ -474,13 +481,14 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * @return null if the format has no header.
      * @throws IOException if there is a problem reading the header or skipping the first record
      */
-    private Headers createHeaders() throws IOException {
+    @RequiresNonNull({"format", "lexer"})
+    private Headers createHeaders(@UnknownInitialization(Object.class) CSVParser this) throws IOException {
         Map<String, Integer> hdrMap = null;
         List<String> headerNames = null;
         final String[] formatHeader = this.format.getHeader();
         if (formatHeader != null) {
             hdrMap = createEmptyHeaderMap();
-            String[] headerRecord = null;
+            @Nullable String[] headerRecord = null;
             if (formatHeader.length == 0) {
                 // read the header from the first line of the file
                 final CSVRecord nextRecord = this.nextRecord();
@@ -540,7 +548,8 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      *
      * @return current line number
      */
-    public long getCurrentLineNumber() {
+    @RequiresNonNull("lexer")
+    public long getCurrentLineNumber(@UnknownInitialization(Object.class) CSVParser this) {
         return this.lexer.getCurrentLineNumber();
     }
 
@@ -575,6 +584,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      *
      * @return the header map.
      */
+    @Pure
     @Nullable Map<String, Integer> getHeaderMapRaw() {
         return this.headerMap;
     }
@@ -657,7 +667,8 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * @throws IOException
      *             on parse error or input read-failure
      */
-    @Nullable CSVRecord nextRecord() throws IOException {
+    @RequiresNonNull({"lexer", "format"})
+    @Nullable CSVRecord nextRecord(@UnknownInitialization(Object.class) CSVParser this) throws IOException {
         CSVRecord result = null;
         this.recordList.clear();
         StringBuilder sb = null;
@@ -696,8 +707,10 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
         if (!this.recordList.isEmpty()) {
             this.recordNumber++;
             final String comment = sb == null ? null : sb.toString();
-            result = new CSVRecord(this, this.recordList.toArray(new String[this.recordList.size()]),
+            @SuppressWarnings("type.incompatible")  // `this` will be fuly initialized soon
+            @Initialized CSVRecord result2 = new CSVRecord(this, this.recordList.toArray(new @Nullable String[this.recordList.size()]),
                 comment, this.recordNumber, startCharPosition);
+            result = result2;
         }
         return result;
     }

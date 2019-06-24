@@ -41,6 +41,7 @@ import org.junit.Test;
 /**
  *
  */
+@SuppressWarnings("initialization.fields.uninitialized")  // JUnit @Before initializes formatWithEscaping
 public class LexerTest {
 
     private CSVFormat formatWithEscaping;

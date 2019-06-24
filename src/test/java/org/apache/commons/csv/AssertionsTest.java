@@ -28,6 +28,7 @@ public class AssertionsTest {
         Assertions.notNull(new Object(), "object");
     }
 
+    @SuppressWarnings("argument.type.incompatible")  // test code, is supposed to NPE
     @Test(expected = IllegalArgumentException.class)
     public void testNotNullNull() throws Exception {
         Assertions.notNull(null, "object");

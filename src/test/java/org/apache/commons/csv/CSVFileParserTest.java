@@ -57,7 +57,7 @@ public class CSVFileParserTest {
         this.testData = new BufferedReader(new FileReader(file));
     }
 
-    private String readTestData() throws IOException {
+    private @Nullable String readTestData() throws IOException {
         String line;
         do {
             line = testData.readLine();
@@ -158,6 +158,9 @@ public class CSVFileParserTest {
 
         // Now parse the file and compare against the expected results
         final URL resource = ClassLoader.getSystemResource("CSVFileParser/" + split[0]);
+        if (resource == null) {
+            throw new Error("Didn't find resource CSVFileParser/" + split[0]);
+        }
         try (final CSVParser parser = CSVParser.parse(resource, Charset.forName("UTF-8"), format)) {
             for (final CSVRecord record : parser) {
                 String parsed = Arrays.toString(record.values());

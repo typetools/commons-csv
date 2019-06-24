@@ -17,9 +17,11 @@
 
 package org.apache.commons.csv;
 
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 import org.checkerframework.checker.nullness.qual.EnsuresKeyForIf;
+import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.dataflow.qual.Pure;
+
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -31,9 +33,9 @@ import java.util.Map.Entry;
 /**
  * A CSV record parsed from a CSV file.
  */
-public final class CSVRecord implements Serializable, Iterable<String> {
+public final class CSVRecord implements Serializable, Iterable<@Nullable String> {
 
-    private static final String[] EMPTY_STRING_ARRAY = new String[0];
+    private static final @Nullable String[] EMPTY_STRING_ARRAY = new @Nullable String[0];
 
     private static final long serialVersionUID = 1L;
 
@@ -46,12 +48,12 @@ public final class CSVRecord implements Serializable, Iterable<String> {
     private final long recordNumber;
 
     /** The values of the record */
-    private final String[] values;
+    private final @Nullable String[] values;
 
     /** The parser that originates this record. */
     private final CSVParser parser;
 
-    CSVRecord(final CSVParser parser, final String @Nullable [] values, final @Nullable String comment, final long recordNumber,
+    CSVRecord(final CSVParser parser, final @Nullable String @Nullable [] values, final @Nullable String comment, final long recordNumber,
             final long characterPosition) {
         this.recordNumber = recordNumber;
         this.values = values != null ? values : EMPTY_STRING_ARRAY;
@@ -137,7 +139,8 @@ public final class CSVRecord implements Serializable, Iterable<String> {
         return comment;
     }
 
-    private Map<String, Integer> getHeaderMapRaw() {
+    @Pure
+    private @Nullable Map<String, Integer> getHeaderMapRaw() {
         return parser.getHeaderMapRaw();
     }
 
@@ -201,11 +204,12 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      *            the name of the column to be retrieved.
      * @return whether a given column is mapped.
      */
-    @EnsuresKeyForIf(expression="#1", map="mapping", result=true)
-    @EnsuresNonNullIf(expression="mapping", result=true)
+    @EnsuresKeyForIf(expression="#1", map="getHeaderMapRaw()", result=true)
+    @EnsuresNonNullIf(expression="getHeaderMapRaw()", result=true)
     public boolean isMapped(final String name) {
         final Map<String, Integer> headerMap = getHeaderMapRaw();
-        return headerMap != null && headerMap.containsKey(name);
+        // Code changed because Nullness Checker has trouble with fact: headerMap == getHeaderMapRaw()
+        return getHeaderMapRaw() != null && getHeaderMapRaw().containsKey(name);
     }
 
     /**
@@ -225,7 +229,7 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      * @return an iterator over the values of this record.
      */
     @Override
-    public Iterator<String> iterator() {
+    public Iterator<@Nullable String> iterator() {
         return toList().iterator();
     }
 
@@ -236,7 +240,7 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      *            The Map to populate.
      * @return the given map.
      */
-    <M extends Map<String, String>> M putIn(final M map) {
+    <M extends Map<String, @Nullable String>> M putIn(final M map) {
         if (getHeaderMapRaw() == null) {
             return map;
         }
@@ -265,7 +269,7 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      *
      * @return a new List
      */
-    private List<String> toList() {
+    private List<@Nullable String> toList() {
         return Arrays.asList(values);
     }
 
@@ -274,8 +278,8 @@ public final class CSVRecord implements Serializable, Iterable<String> {
      *
      * @return A new Map. The map is empty if the record has no headers.
      */
-    public Map<String, String> toMap() {
-        return putIn(new LinkedHashMap<String, String>(values.length));
+    public Map<String, @Nullable String> toMap() {
+        return putIn(new LinkedHashMap<String, @Nullable String>(values.length));
     }
 
     /**
@@ -290,7 +294,7 @@ public final class CSVRecord implements Serializable, Iterable<String> {
             Arrays.toString(values) + "]";
     }
 
-    String[] values() {
+    @Nullable String[] values() {
         return values;
     }
 

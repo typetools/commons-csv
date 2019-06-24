@@ -37,6 +37,7 @@ final class Utils {
      * @param expected the 2d array of expected results
      * @param actual the List of {@link CSVRecord} entries, each containing an array of values
      */
+    @SuppressWarnings("nullness")  // JUnit 4 is not yet annotated
     public static void compare(final String message, final String[][] expected, final List<CSVRecord> actual) {
         Assert.assertEquals(message+"  - outer array size", expected.length, actual.size());
         for (int i = 0; i < expected.length; i++) {
