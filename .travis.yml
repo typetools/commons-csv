@@ -23,6 +23,9 @@ jdk:
   - openjdk12
   - openjdk-ea
 
+script:
+  - mvn -B -Dmaven.test.skip=true package
+
 after_success:
   - mvn -B -V clean test jacoco:report coveralls:report -Ptravis-jacoco
   
