@@ -20,10 +20,10 @@
   <parent>
     <groupId>org.apache.commons</groupId>
     <artifactId>commons-parent</artifactId>
-    <version>47</version>
+    <version>48</version>
   </parent>
   <artifactId>commons-csv</artifactId>
-  <version>1.6</version>
+  <version>1.7</version>
   <name>Apache Commons CSV</name>
   <url>http://commons.apache.org/proper/commons-csv/</url>
   <description>
@@ -53,13 +53,13 @@ CSV files of various types.
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-      <version>3.8.1</version>
+      <version>3.9</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <version>1.4.196</version>
+      <version>1.4.199</version>
       <scope>test</scope>
     </dependency>
     <!-- Annotations from the Checker Framework: nullness, interning, locking, ... -->
@@ -145,10 +145,11 @@ CSV files of various types.
   </distributionManagement>
 
   <properties>
-    <commons.release.version>1.6</commons.release.version>
-    <commons.release.desc>(Java 7+)</commons.release.desc>
+    <commons.release.version>1.7</commons.release.version>
+    <commons.release.desc>(Java 8)</commons.release.desc>
     <!-- The RC version used in the staging repository URL. -->
     <commons.rc.version>RC1</commons.rc.version>
+    <commons.bc.version>1.6</commons.bc.version>
     <commons.componentid>csv</commons.componentid>
     <commons.module.name>org.apache.commons.csv</commons.module.name>
     <commons.jira.id>CSV</commons.jira.id>
@@ -161,14 +162,15 @@ CSV files of various types.
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <commons.encoding>UTF-8</commons.encoding>
 
-    <checkstyle.version>2.17</checkstyle.version>
+    <checkstyle.version>3.0.0</checkstyle.version>
     <checkstyle.header.file>${basedir}/LICENSE-header.txt</checkstyle.header.file>
     <checkstyle.resourceExcludes>LICENSE.txt, NOTICE.txt</checkstyle.resourceExcludes>
 
-    <!-- Fix for COMMONSSITE-124 remove once commons-parent 48 has been released -->
-    <commons.scmPubUrl>https://svn.apache.org/repos/infra/websites/production/commons/content/proper/${project.artifactId}</commons.scmPubUrl>
-    <!-- Fix for COMMONSSITE-125 remove once commons-parent 48 has been released -->
-    <commons.osgi.symbolicName>org.apache.commons.${commons.componentid}</commons.osgi.symbolicName>
+    <japicmp.skip>false</japicmp.skip>
+    
+    <commons.release.isDistModule>true</commons.release.isDistModule>
+    <commons.releaseManagerName>Gary Gregory</commons.releaseManagerName>    
+    <commons.releaseManagerKey>86fdc7e2a11262cb</commons.releaseManagerKey>
 
     <!-- These properties will be set by the Maven Dependency plugin -->
     <annotatedJdk>${org.checkerframework:jdk8:jar}</annotatedJdk>
@@ -176,20 +178,6 @@ CSV files of various types.
 
   <build>
     <defaultGoal>clean verify apache-rat:check clirr:check javadoc:javadoc</defaultGoal>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-scm-publish-plugin</artifactId>
-          <version>1.1</version>
-          <configuration>
-            <ignorePathsToDelete>
-              <ignorePathToDelete>archives/**</ignorePathToDelete>
-            </ignorePathsToDelete>
-          </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -259,7 +247,6 @@ CSV files of various types.
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-        <version>${commons.rat.version}</version>
         <!-- Should agree with config in reporting section -->
         <configuration>
           <excludes>
@@ -322,7 +309,7 @@ CSV files of various types.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-pmd-plugin</artifactId>
-        <version>3.8</version>
+        <version>3.12.0</version>
         <configuration>
           <targetJdk>${maven.compiler.target}</targetJdk>
         </configuration>
@@ -330,6 +317,7 @@ CSV files of various types.
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
+        <version>${commons.findbugs.version}</version>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -376,16 +364,6 @@ CSV files of various types.
           </tagListOptions>
         </configuration>
       </plugin>
-      <!--
-          NOTE: this requires Maven 3.0.x; when used with Maven 2.2.1, the following error is seen:
-          Embedded error: Error rendering Maven report: org.dom4j.DocumentFactory cannot be cast to org.dom4j.DocumentFactory
-       -->
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>javancss-maven-plugin</artifactId>
-        <version>2.1</version>
-      </plugin>
-
       <!-- We need to add our test data files to rat exclusions -->
       <plugin>
         <groupId>org.apache.rat</groupId>
@@ -532,6 +510,7 @@ CSV files of various types.
           <!-- Enable the compilation of the benchmarks -->
           <plugin>
             <artifactId>maven-compiler-plugin</artifactId>
+            <version>${commons.compiler.version}</version>
             <configuration combine.self="override">
               <testIncludes>
                 <testInclude>**/*</testInclude>

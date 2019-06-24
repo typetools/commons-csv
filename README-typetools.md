@@ -18,7 +18,7 @@ To update to a newer version of the upstream library
 At https://github.com/apache/commons-csv/releases ,
 find the commit corresponding to a public release.
 
-Commons CSV version 1.6 is commit 2596fdeebcab53fe459c481990bf1dec838128a5
+Commons CSV version 1.7 is commit a227a1e2fb61ff5f192cfd8099e7e6f4848d7d43
 
 Pull in that commit:
 ```

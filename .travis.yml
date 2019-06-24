@@ -16,9 +16,12 @@
 language: java
 
 jdk:
-  - openjdk7
   - oraclejdk8
-  - oraclejdk9
+  - oraclejdk11
+  - openjdk8
+  - openjdk11
+  - openjdk12
+  - openjdk-ea
 
 after_success:
   - mvn -B -V clean test jacoco:report coveralls:report -Ptravis-jacoco

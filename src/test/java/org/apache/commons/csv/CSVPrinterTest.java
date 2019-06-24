@@ -29,6 +29,7 @@ import static org.mockito.Mockito.verify;
 import java.io.CharArrayWriter;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -51,8 +52,9 @@ import java.util.Random;
 import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
-import org.h2.value.Value;
-import org.h2.value.ValueArray;
+import org.apache.commons.io.output.NullOutputStream;
+import org.apache.commons.lang3.StringUtils;
+import org.h2.tools.SimpleResultSet;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -82,6 +84,7 @@ public class CSVPrinterTest {
     }
 
     private final String recordSeparator = CSVFormat.DEFAULT.getRecordSeparator();
+    private String longText2;
 
     private void doOneRandom(final CSVFormat format) throws Exception {
         final Random r = new Random();
@@ -216,9 +219,13 @@ public class CSVPrinterTest {
 
     private void setUpTable(final Connection connection) throws SQLException {
         try (final Statement statement = connection.createStatement()) {
-            statement.execute("CREATE TABLE TEST(ID INT PRIMARY KEY, NAME VARCHAR(255))");
-            statement.execute("insert into TEST values(1, 'r1')");
-            statement.execute("insert into TEST values(2, 'r2')");
+            statement.execute("CREATE TABLE TEST(ID INT PRIMARY KEY, NAME VARCHAR(255), TEXT CLOB)");
+            statement.execute("insert into TEST values(1, 'r1', 'long text 1')");
+            longText2 = StringUtils.repeat('a', IOUtils.DEFAULT_BUFFER_SIZE - 4);
+            longText2 += "\"\r\n\"a\"";
+            longText2 += StringUtils.repeat('a', IOUtils.DEFAULT_BUFFER_SIZE - 1);
+            statement.execute("insert into TEST values(2, 'r2', '" + longText2 + "')");
+            longText2 = longText2.replace("\"","\"\"");
         }
     }
 
@@ -227,6 +234,7 @@ public class CSVPrinterTest {
         try (final Writer writer = mock(Writer.class)) {
             final CSVFormat csvFormat = CSVFormat.DEFAULT;
             try (CSVPrinter csvPrinter = new CSVPrinter(writer, csvFormat)) {
+                // empty
             }
             verify(writer, never()).flush();
             verify(writer, times(1)).close();
@@ -237,6 +245,7 @@ public class CSVPrinterTest {
         try (final Writer writer = mock(Writer.class)) {
             final CSVFormat csvFormat = CSVFormat.DEFAULT.withAutoFlush(false);
             try (CSVPrinter csvPrinter = new CSVPrinter(writer, csvFormat)) {
+                // empty
             }
             verify(writer, never()).flush();
             verify(writer, times(1)).close();
@@ -249,6 +258,7 @@ public class CSVPrinterTest {
         try (final Writer writer = mock(Writer.class)) {
             final CSVFormat csvFormat = CSVFormat.DEFAULT.withAutoFlush(true);
             try (CSVPrinter csvPrinter = new CSVPrinter(writer, csvFormat)) {
+                // empty
             }
             verify(writer, times(1)).flush();
             verify(writer, times(1)).close();
@@ -256,21 +266,25 @@ public class CSVPrinterTest {
 
     @Test
     public void testCloseWithFlushOff() throws IOException {
-        final Writer writer = mock(Writer.class);
-        final CSVFormat csvFormat = CSVFormat.DEFAULT;
-        final CSVPrinter csvPrinter = new CSVPrinter(writer, csvFormat);
-        csvPrinter.close(false);
-        verify(writer, never()).flush();
-        verify(writer, times(1)).close();
+        try (final Writer writer = mock(Writer.class)) {
+            final CSVFormat csvFormat = CSVFormat.DEFAULT;
+            @SuppressWarnings("resource")
+            final CSVPrinter csvPrinter = new CSVPrinter(writer, csvFormat);
+            csvPrinter.close(false);
+            verify(writer, never()).flush();
+            verify(writer, times(1)).close();
+        }
     }
 
     @Test
     public void testCloseWithFlushOn() throws IOException {
-        final Writer writer = mock(Writer.class);
-        final CSVFormat csvFormat = CSVFormat.DEFAULT;
-        final CSVPrinter csvPrinter = new CSVPrinter(writer, csvFormat);
-        csvPrinter.close(true);
-        verify(writer, times(1)).flush();
+        try (final Writer writer = mock(Writer.class)) {
+            final CSVFormat csvFormat = CSVFormat.DEFAULT;
+            @SuppressWarnings("resource")
+            final CSVPrinter csvPrinter = new CSVPrinter(writer, csvFormat);
+            csvPrinter.close(true);
+            verify(writer, times(1)).flush();
+        }
     }
 
     @Test
@@ -566,10 +580,11 @@ public class CSVPrinterTest {
             setUpTable(connection);
             try (final Statement stmt = connection.createStatement();
                     final CSVPrinter printer = new CSVPrinter(sw, CSVFormat.DEFAULT)) {
-                printer.printRecords(stmt.executeQuery("select ID, NAME from TEST"));
+                printer.printRecords(stmt.executeQuery("select ID, NAME, TEXT from TEST"));
             }
         }
-        assertEquals("1,r1" + recordSeparator + "2,r2" + recordSeparator, sw.toString());
+        assertEquals("1,r1,\"long text 1\"" + recordSeparator + "2,r2,\"" + longText2 + "\"" + recordSeparator,
+                sw.toString());
     }
 
     @Test
@@ -579,12 +594,13 @@ public class CSVPrinterTest {
         try (final Connection connection = geH2Connection();) {
             setUpTable(connection);
             try (final Statement stmt = connection.createStatement();
-                    final ResultSet resultSet = stmt.executeQuery("select ID, NAME from TEST");
+                    final ResultSet resultSet = stmt.executeQuery("select ID, NAME, TEXT from TEST");
                     final CSVPrinter printer = CSVFormat.DEFAULT.withHeader(resultSet).print(sw)) {
                 printer.printRecords(resultSet);
             }
         }
-        assertEquals("ID,NAME" + recordSeparator + "1,r1" + recordSeparator + "2,r2" + recordSeparator, sw.toString());
+        assertEquals("ID,NAME,TEXT" + recordSeparator + "1,r1,\"long text 1\"" + recordSeparator + "2,r2,\"" + longText2
+                + "\"" + recordSeparator, sw.toString());
     }
 
     @Test
@@ -594,11 +610,11 @@ public class CSVPrinterTest {
         try (final Connection connection = geH2Connection()) {
             setUpTable(connection);
             try (final Statement stmt = connection.createStatement();
-                    final ResultSet resultSet = stmt.executeQuery("select ID, NAME from TEST");
+                    final ResultSet resultSet = stmt.executeQuery("select ID, NAME, TEXT from TEST");
                     final CSVPrinter printer = CSVFormat.DEFAULT.withHeader(resultSet.getMetaData()).print(sw)) {
                 printer.printRecords(resultSet);
-                assertEquals("ID,NAME" + recordSeparator + "1,r1" + recordSeparator + "2,r2" + recordSeparator,
-                        sw.toString());
+                assertEquals("ID,NAME,TEXT" + recordSeparator + "1,r1,\"long text 1\"" + recordSeparator + "2,r2,\""
+                        + longText2 + "\"" + recordSeparator, sw.toString());
             }
         }
     }
@@ -1229,12 +1245,18 @@ public class CSVPrinterTest {
 
     @Test
     public void testPrintRecordsWithEmptyVector() throws IOException {
-        try (CSVPrinter csvPrinter = CSVFormat.POSTGRESQL_TEXT.printer()) {
-            final Vector<CSVFormatTest.EmptyEnum> vector = new Vector<>();
-            final int expectedCapacity = 23;
-            vector.setSize(expectedCapacity);
-            csvPrinter.printRecords(vector);
-            assertEquals(expectedCapacity, vector.capacity());
+        final PrintStream out = System.out;
+        try {
+            System.setOut(new PrintStream(NullOutputStream.NULL_OUTPUT_STREAM));
+            try (CSVPrinter csvPrinter = CSVFormat.POSTGRESQL_TEXT.printer()) {
+                final Vector<CSVFormatTest.EmptyEnum> vector = new Vector<>();
+                final int expectedCapacity = 23;
+                vector.setSize(expectedCapacity);
+                csvPrinter.printRecords(vector);
+                assertEquals(expectedCapacity, vector.capacity());
+            }
+        } finally {
+            System.setOut(out);
         }
     }
 
@@ -1254,9 +1276,7 @@ public class CSVPrinterTest {
     @Test
     public void testPrintRecordsWithResultSetOneRow() throws IOException, SQLException {
         try (CSVPrinter csvPrinter = CSVFormat.MYSQL.printer()) {
-            final Value[] valueArray = new Value[0];
-            final ValueArray valueArrayTwo = ValueArray.get(valueArray);
-            try (ResultSet resultSet = valueArrayTwo.getResultSet()) {
+            try (ResultSet resultSet = new SimpleResultSet()) {
                 csvPrinter.printRecords(resultSet);
                 assertEquals(0, resultSet.getRow());
             }

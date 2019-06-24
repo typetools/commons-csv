@@ -23,34 +23,40 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 public class CSVRecordTest {
 
-    private enum EnumFixture { UNKNOWN_COLUMN }
+    private enum EnumFixture {
+        UNKNOWN_COLUMN
+    }
 
     private String[] values;
     private CSVRecord record, recordWithHeader;
-    private Map<String, Integer> header;
+    private Map<String, Integer> headerMap;
 
     @Before
     public void setUp() throws Exception {
         values = new String[] { "A", "B", "C" };
-        record = new CSVRecord(values, null, null, 0, -1);
-        header = new HashMap<>();
-        header.put("first", Integer.valueOf(0));
-        header.put("second", Integer.valueOf(1));
-        header.put("third", Integer.valueOf(2));
-        recordWithHeader = new CSVRecord(values, header, null, 0, -1);
+        final String rowData = StringUtils.join(values, ',');
+        try (final CSVParser parser = CSVFormat.DEFAULT.parse(new StringReader(rowData))) {
+            record = parser.iterator().next();
+        }
+        final String[] headers = { "first", "second", "third" };
+        try (final CSVParser parser = CSVFormat.DEFAULT.withHeader(headers).parse(new StringReader(rowData))) {
+            recordWithHeader = parser.iterator().next();
+            headerMap = parser.getHeaderMap();
+        }
     }
 
     @Test
@@ -69,7 +75,7 @@ public class CSVRecordTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testGetStringInconsistentRecord() {
-        header.put("fourth", Integer.valueOf(4));
+        headerMap.put("fourth", Integer.valueOf(4));
         recordWithHeader.get("fourth");
     }
 
@@ -102,9 +108,22 @@ public class CSVRecordTest {
     public void testIsConsistent() {
         assertTrue(record.isConsistent());
         assertTrue(recordWithHeader.isConsistent());
+        final Map<String, Integer> map = recordWithHeader.getParser().getHeaderMap();
+        map.put("fourth", Integer.valueOf(4));
+        // We are working on a copy of the map, so the record should still be OK.
+        assertTrue(recordWithHeader.isConsistent());
+    }
 
-        header.put("fourth", Integer.valueOf(4));
-        assertFalse(recordWithHeader.isConsistent());
+    @Test
+    public void testIsInconsistent() throws IOException {
+        final String[] headers = { "first", "second", "third" };
+        final String rowData = StringUtils.join(values, ',');
+        try (final CSVParser parser = CSVFormat.DEFAULT.withHeader(headers).parse(new StringReader(rowData))) {
+            final Map<String, Integer> map = parser.getHeaderMapRaw();
+            final CSVRecord record1 = parser.iterator().next();
+            map.put("fourth", Integer.valueOf(4));
+            assertFalse(record1.isConsistent());
+        }
     }
 
     @Test
