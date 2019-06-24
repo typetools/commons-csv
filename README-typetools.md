@@ -40,7 +40,7 @@ This must be done on a CSE machine, which has access to the necessary passwords.
 #  * in file pom.xml (if different from upstream)
 #  * environment variable PACKAGE below
 
-PACKAGE=commons-csv-1.6 && \
+PACKAGE=commons-csv-1.7 && \
 mvn -B -Dmaven.test.skip=true package && \
 mvn source:jar && \
 mvn javadoc:javadoc && (cd target/site/apidocs && jar -cf ${PACKAGE}-javadoc.jar org)

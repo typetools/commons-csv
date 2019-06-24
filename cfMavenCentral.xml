@@ -19,7 +19,7 @@
         </license>
     </licenses>
 
-    <version>1.6</version>
+    <version>1.7</version>
 
     <scm>
         <url>https://github.com/typetools/commons-csv.git</url>
