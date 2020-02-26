@@ -32,13 +32,13 @@ import java.util.zip.GZIPInputStream;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.IOUtils;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests performance.
  *
- * To run this test, use: mvn test -Dtest=PeformanceTest
+ * To run this test, use: mvn test -Dtest=PerformanceTest
  */
 @SuppressWarnings("boxing") // test code
 public class PerformanceTest {
@@ -47,7 +47,7 @@ public class PerformanceTest {
 
     private static final File BIG_FILE = new File(System.getProperty("java.io.tmpdir"), "worldcitiespop.txt");
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() throws FileNotFoundException, IOException {
         if (BIG_FILE.exists()) {
             System.out.println(String.format("Found test fixture %s: %,d bytes.", BIG_FILE, BIG_FILE.length()));
@@ -112,12 +112,11 @@ public class PerformanceTest {
     @Test
     public void testReadBigFile() throws Exception {
         long bestTime = Long.MAX_VALUE;
+        long count;
         for (int i = 0; i < this.max; i++) {
             final long startMillis;
-            long count;
             try (final BufferedReader in = this.createBufferedReader()) {
                 startMillis = System.currentTimeMillis();
-                count = 0;
                 count = this.readAll(in);
             }
             final long totalMillis = System.currentTimeMillis() - startMillis;

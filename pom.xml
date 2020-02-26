@@ -20,28 +20,31 @@
   <parent>
     <groupId>org.apache.commons</groupId>
     <artifactId>commons-parent</artifactId>
-    <version>48</version>
+    <version>50</version>
   </parent>
   <artifactId>commons-csv</artifactId>
-  <version>1.7</version>
+  <version>1.8</version>
   <name>Apache Commons CSV</name>
-  <url>http://commons.apache.org/proper/commons-csv/</url>
-  <description>
-The Apache Commons CSV library provides a simple interface for reading and writing
-CSV files of various types.
-  </description>
+  <url>https://commons.apache.org/proper/commons-csv/</url>
+  <description>The Apache Commons CSV library provides a simple interface for reading and writing CSV files of various types.</description>
 
   <dependencies>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.12</version>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>5.6.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest</artifactId>
+      <version>2.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
-      <artifactId>mockito-all</artifactId>
-      <version>1.10.19</version>
+      <artifactId>mockito-core</artifactId>
+      <version>3.2.4</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -59,7 +62,7 @@ CSV files of various types.
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <version>1.4.199</version>
+      <version>1.4.200</version>
       <scope>test</scope>
     </dependency>
     <!-- Annotations from the Checker Framework: nullness, interning, locking, ... -->
@@ -131,14 +134,14 @@ CSV files of various types.
   </contributors>
 
   <scm>
-    <connection>scm:git:http://git-wip-us.apache.org/repos/asf/commons-csv.git</connection>
-    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/commons-csv.git</developerConnection>
-    <url>https://git-wip-us.apache.org/repos/asf?p=commons-csv.git</url>
+    <connection>scm:git:http://gitbox.apache.org/repos/asf/commons-csv.git</connection>
+    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/commons-csv.git</developerConnection>
+    <url>https://gitbox.apache.org/repos/asf?p=commons-csv.git</url>
   </scm>
 
   <issueManagement>
     <system>jira</system>
-    <url>http://issues.apache.org/jira/browse/CSV</url>
+    <url>https://issues.apache.org/jira/browse/CSV</url>
   </issueManagement>
 
   <distributionManagement>
@@ -150,11 +153,11 @@ CSV files of various types.
   </distributionManagement>
 
   <properties>
-    <commons.release.version>1.7</commons.release.version>
+    <commons.release.version>1.8</commons.release.version>
     <commons.release.desc>(Java 8)</commons.release.desc>
     <!-- The RC version used in the staging repository URL. -->
-    <commons.rc.version>RC1</commons.rc.version>
-    <commons.bc.version>1.6</commons.bc.version>
+    <commons.rc.version>RC2</commons.rc.version>
+    <commons.bc.version>1.7</commons.bc.version>
     <commons.componentid>csv</commons.componentid>
     <commons.module.name>org.apache.commons.csv</commons.module.name>
     <commons.jira.id>CSV</commons.jira.id>
@@ -162,6 +165,7 @@ CSV files of various types.
     <project.inceptionYear>2005</project.inceptionYear>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
+    <commons.javadoc.java.link>http://docs.oracle.com/javase/8/docs/api/</commons.javadoc.java.link>
     <!-- Ensure copies work OK (can be removed later when this is in parent POM) -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -169,8 +173,9 @@ CSV files of various types.
 
     <checkstyle.version>3.0.0</checkstyle.version>
     <checkstyle.header.file>${basedir}/LICENSE-header.txt</checkstyle.header.file>
-    <checkstyle.resourceExcludes>LICENSE.txt, NOTICE.txt</checkstyle.resourceExcludes>
+    <checkstyle.resourceExcludes>LICENSE.txt, NOTICE.txt, **/maven-archiver/pom.properties</checkstyle.resourceExcludes>
 
+    <pmd.version>3.12.0</pmd.version>
     <japicmp.skip>false</japicmp.skip>
     
     <commons.release.isDistModule>true</commons.release.isDistModule>
@@ -246,6 +251,32 @@ CSV files of various types.
         <configuration>
           <configLocation>${basedir}/checkstyle.xml</configLocation>
           <enableRulesSummary>false</enableRulesSummary>
+          <suppressionsLocation>${basedir}/src/main/resources/checkstyle/checkstyle-suppressions.xml</suppressionsLocation>
+        </configuration>
+      </plugin>
+      <!-- Allow findbugs to be run interactively; keep in sync with report config below -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>findbugs-maven-plugin</artifactId>
+        <version>${commons.findbugs.version}</version>
+        <configuration>
+          <threshold>Normal</threshold>
+          <effort>Default</effort>
+          <excludeFilterFile>${basedir}/src/main/resources/findbugs/findbugs-exclude-filter.xml</excludeFilterFile>
+        </configuration>
+      </plugin>
+      <!-- Allow pmd to be run interactively; keep in sync with report config below -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <version>${pmd.version}</version>
+        <configuration>
+          <targetJdk>${maven.compiler.target}</targetJdk>
+          <skipEmptyReport>false</skipEmptyReport>
+          <analysisCache>true</analysisCache>
+          <rulesets>
+            <ruleset>${basedir}/src/main/resources/pmd/pmd-ruleset.xml</ruleset>
+          </rulesets>
         </configuration>
       </plugin>
 
@@ -278,6 +309,7 @@ CSV files of various types.
             <!-- The ferc.gov files are included discussion in https://issues.apache.org/jira/browse/LEGAL-175. -->
             <exclude>src/test/resources/ferc.gov/contract.txt</exclude>
             <exclude>src/test/resources/ferc.gov/transaction.txt</exclude>
+            <exclude>src/test/resources/**/*.bin</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -308,6 +340,7 @@ CSV files of various types.
         <configuration>
           <configLocation>${basedir}/checkstyle.xml</configLocation>
           <enableRulesSummary>false</enableRulesSummary>
+          <suppressionsLocation>${basedir}/src/main/resources/checkstyle/checkstyle-suppressions.xml</suppressionsLocation>
         </configuration>
         <!-- We need to specify reportSets because 2.9.1 creates two reports -->
         <reportSets>
@@ -321,15 +354,25 @@ CSV files of various types.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-pmd-plugin</artifactId>
-        <version>3.12.0</version>
+        <version>${pmd.version}</version>
         <configuration>
           <targetJdk>${maven.compiler.target}</targetJdk>
+          <skipEmptyReport>false</skipEmptyReport>
+          <analysisCache>true</analysisCache>
+          <rulesets>
+            <ruleset>${basedir}/src/main/resources/pmd/pmd-ruleset.xml</ruleset>
+          </rulesets>
         </configuration>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
         <version>${commons.findbugs.version}</version>
+        <configuration>
+          <threshold>Normal</threshold>
+          <effort>Default</effort>
+          <excludeFilterFile>${basedir}/src/main/resources/findbugs/findbugs-exclude-filter.xml</excludeFilterFile>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -356,7 +399,7 @@ CSV files of various types.
                 </tags>
               </tagClass>
               <tagClass>
-                <displayName>Noteable Markers</displayName>
+                <displayName>Notable Markers</displayName>
                 <tags>
                   <tag>
                     <matchString>NOTE</matchString>
@@ -398,6 +441,7 @@ CSV files of various types.
             <exclude>src/test/resources/CSVFileParser/testCSV85_ignoreEmpty.txt</exclude>
             <exclude>src/test/resources/ferc.gov/contract.txt</exclude>
             <exclude>src/test/resources/ferc.gov/transaction.txt</exclude>
+            <exclude>src/test/resources/**/*.bin</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -405,52 +449,6 @@ CSV files of various types.
   </reporting>
 
   <profiles>
-    <profile>
-      <id>setup-checkout</id>
-      <activation>
-        <file>
-          <missing>site-content</missing>
-        </file>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-antrun-plugin</artifactId>
-            <version>1.8</version>
-            <executions>
-              <execution>
-                <id>prepare-checkout</id>
-                <phase>pre-site</phase>
-                <goals>
-                  <goal>run</goal>
-                </goals>
-                <configuration>
-                  <tasks>
-                    <exec executable="svn">
-                      <arg line="checkout --depth immediates ${commons.scmPubUrl} ${commons.scmPubCheckoutDirectory}" />
-                    </exec>
-
-                    <exec executable="svn">
-                      <arg line="update --set-depth exclude ${commons.scmPubCheckoutDirectory}/javadocs" />
-                    </exec>
-
-                    <pathconvert pathsep=" " property="dirs">
-                      <dirset dir="${commons.scmPubCheckoutDirectory}" includes="*" />
-                    </pathconvert>
-                    <exec executable="svn">
-                      <arg line="update --set-depth infinity ${dirs}" />
-                    </exec>
-                  </tasks>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
-
     <!-- Profile to build and run the benchmarks. Use 'mvn test -Pbenchmark', and add '-Dbenchmark=foo' to run only the foo benchmark -->
     <profile>
       <id>benchmark</id>
@@ -495,6 +493,7 @@ CSV files of various types.
           <groupId>net.sf.supercsv</groupId>
           <artifactId>super-csv</artifactId>
           <version>2.2.1</version>
+          <scope>test</scope>
         </dependency>
 
         <!-- Not in Maven Central, download manually from http://kasparov.skife.org/csv/csv-1.0.jar and install with:

@@ -14,38 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.commons.csv.issues;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.List;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 import org.junit.jupiter.api.Test;
 
-public class JiraCsv198Test {
-
-    private static final CSVFormat CSV_FORMAT = CSVFormat.EXCEL.withDelimiter('^').withFirstRecordAsHeader();
+public class JiraCsv249Test {
 
     @Test
-    public void test() throws UnsupportedEncodingException, IOException {
-        final InputStream pointsOfReference = getClass().getResourceAsStream("/CSV-198/optd_por_public.csv");
-        if (pointsOfReference == null) {
-            throw new Error("Didn't find resource /CSV-198/optd_por_public.csv");
+    public void testJiraCsv249() throws IOException {
+        final CSVFormat csvFormat = CSVFormat.DEFAULT.withEscape('\\');
+        final StringWriter stringWriter = new StringWriter();
+        try (CSVPrinter printer = new CSVPrinter(stringWriter, csvFormat)) {
+            printer.printRecord("foo \\", "bar");
         }
-        assertNotNull(pointsOfReference);
-        try (@SuppressWarnings("resource")
-        CSVParser parser = CSV_FORMAT.parse(new InputStreamReader(pointsOfReference, "UTF-8"))) {
-            for (final CSVRecord record : parser) {
-                final String locationType = record.get("location_type");
-                assertNotNull(locationType);
-            }
+        final StringReader stringReader = new StringReader(stringWriter.toString());
+        List<CSVRecord> records;
+        try (CSVParser parser = new CSVParser(stringReader, csvFormat)) {
+            records = parser.getRecords();
         }
-    }
+        records.forEach(record -> {
+            assertEquals("foo \\", record.get(0));
+            assertEquals("bar", record.get(1));
+        });
 
+    }
 }

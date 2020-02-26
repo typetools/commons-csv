@@ -16,11 +16,12 @@
  */
 package org.apache.commons.csv.issues;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.QuoteMode;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * JIRA: <a href="https://issues.apache.org/jira/browse/CSV-203">withNullString value is printed without quotes when QuoteMode.ALL is specified</a>
@@ -36,9 +37,9 @@ public class JiraCsv203Test {
 
         final StringBuffer buffer = new StringBuffer();
         try (final CSVPrinter printer = new CSVPrinter(buffer, format)) {
-            printer.printRecord(new Object[] { null, "Hello", null, "World" });
+            printer.printRecord(null, "Hello", null, "World");
         }
-        Assert.assertEquals("\"N/A\",\"Hello\",\"N/A\",\"World\"\r\n", buffer.toString());
+        assertEquals("\"N/A\",\"Hello\",\"N/A\",\"World\"\r\n", buffer.toString());
     }
 
     @Test
@@ -50,9 +51,9 @@ public class JiraCsv203Test {
 
         final StringBuffer buffer = new StringBuffer();
         try (final CSVPrinter printer = new CSVPrinter(buffer, format)) {
-            printer.printRecord(new Object[] { null, "Hello", null, "World" });
+            printer.printRecord(null, "Hello", null, "World");
         }
-        Assert.assertEquals("N/A,\"Hello\",N/A,\"World\"\r\n", buffer.toString());
+        assertEquals("N/A,\"Hello\",N/A,\"World\"\r\n", buffer.toString());
     }
 
     @Test
@@ -63,9 +64,9 @@ public class JiraCsv203Test {
 
         final StringBuffer buffer = new StringBuffer();
         try (final CSVPrinter printer = new CSVPrinter(buffer, format)) {
-            printer.printRecord(new Object[] { null, "Hello", null, "World" });
+            printer.printRecord(null, "Hello", null, "World");
         }
-        Assert.assertEquals("N/A,Hello,N/A,World\r\n", buffer.toString());
+        assertEquals("N/A,Hello,N/A,World\r\n", buffer.toString());
     }
 
     @Test
@@ -77,9 +78,9 @@ public class JiraCsv203Test {
 
         final StringBuffer buffer = new StringBuffer();
         try (final CSVPrinter printer = new CSVPrinter(buffer, format)) {
-            printer.printRecord(new Object[] { null, "Hello", null, "World" });
+            printer.printRecord(null, "Hello", null, "World");
         }
-        Assert.assertEquals("N/A,Hello,N/A,World\r\n", buffer.toString());
+        assertEquals("N/A,Hello,N/A,World\r\n", buffer.toString());
     }
 
     @Test
@@ -91,9 +92,9 @@ public class JiraCsv203Test {
 
         final StringBuffer buffer = new StringBuffer();
         try (final CSVPrinter printer = new CSVPrinter(buffer, format)) {
-            printer.printRecord(new Object[] { null, "Hello", null, "World" });
+            printer.printRecord(null, "Hello", null, "World");
         }
-        Assert.assertEquals("N/A,\"Hello\",N/A,\"World\"\r\n", buffer.toString());
+        assertEquals("N/A,\"Hello\",N/A,\"World\"\r\n", buffer.toString());
     }
 
     @Test
@@ -105,9 +106,9 @@ public class JiraCsv203Test {
 
         final StringBuffer buffer = new StringBuffer();
         try (final CSVPrinter printer = new CSVPrinter(buffer, format)) {
-            printer.printRecord(new Object[] { null, "Hello", null, "World" });
+            printer.printRecord(null, "Hello", null, "World");
         }
-        Assert.assertEquals(",\"Hello\",,\"World\"\r\n", buffer.toString());
+        assertEquals(",\"Hello\",,\"World\"\r\n", buffer.toString());
     }
 
     @Test
@@ -119,9 +120,9 @@ public class JiraCsv203Test {
 
         final StringBuffer buffer = new StringBuffer();
         try (final CSVPrinter printer = new CSVPrinter(buffer, format)) {
-            printer.printRecord(new Object[] { "", "Hello", "", "World" });
+            printer.printRecord("", "Hello", "", "World");
             //printer.printRecord(new Object[] { null, "Hello", null, "World" });
         }
-        Assert.assertEquals("\"\",\"Hello\",\"\",\"World\"\r\n", buffer.toString());
+        assertEquals("\"\",\"Hello\",\"\",\"World\"\r\n", buffer.toString());
     }
 }

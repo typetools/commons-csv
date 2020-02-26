@@ -642,7 +642,7 @@ public final class CSVFormat implements Serializable {
      * @param c
      *            the character to check
      *
-     * @return true if <code>c</code> is a line break character
+     * @return true if {@code c} is a line break character
      */
     private static boolean isLineBreak(final char c) {
         return c == LF || c == CR;
@@ -654,7 +654,7 @@ public final class CSVFormat implements Serializable {
      * @param c
      *            the character to check, may be null
      *
-     * @return true if <code>c</code> is a line break character (and not null)
+     * @return true if {@code c} is a line break character (and not null)
      */
     private static boolean isLineBreak(final @Nullable Character c) {
         return c != null && isLineBreak(c.charValue());
@@ -819,6 +819,24 @@ public final class CSVFormat implements Serializable {
         if (delimiter != other.delimiter) {
             return false;
         }
+        if (trailingDelimiter != other.trailingDelimiter) {
+            return false;
+        }
+        if (autoFlush != other.autoFlush) {
+            return false;
+        }
+        if (trim != other.trim) {
+            return false;
+        }
+        if (allowMissingColumnNames != other.allowMissingColumnNames) {
+            return false;
+        }
+        if (allowDuplicateHeaderNames != other.allowDuplicateHeaderNames) {
+            return false;
+        }
+        if (ignoreHeaderCase != other.ignoreHeaderCase) {
+            return false;
+        }
         if (quoteMode != other.quoteMode) {
             return false;
         }
@@ -869,6 +887,9 @@ public final class CSVFormat implements Serializable {
         } else if (!recordSeparator.equals(other.recordSeparator)) {
             return false;
         }
+        if (!Arrays.equals(headerComments, other.headerComments)) {
+            return false;
+        }
         return true;
     }
 
@@ -881,7 +902,7 @@ public final class CSVFormat implements Serializable {
      */
     public String format(final Object... values) {
         final StringWriter out = new StringWriter();
-        try (final CSVPrinter csvPrinter = new CSVPrinter(out, this)) {
+        try (CSVPrinter csvPrinter = new CSVPrinter(out, this)) {
             csvPrinter.printRecord(values);
             return out.toString().trim();
         } catch (final IOException e) {
@@ -1081,6 +1102,8 @@ public final class CSVFormat implements Serializable {
 
     /**
      * Returns whether to trim leading and trailing blanks.
+     * This is used by {@link #print(Object, Appendable, boolean)}
+     * Also by {@link CSVParser#addRecordValue(boolean)}
      *
      * @return whether to trim leading and trailing blanks.
      */
@@ -1105,8 +1128,14 @@ public final class CSVFormat implements Serializable {
         result = prime * result + (ignoreHeaderCase ? 1231 : 1237);
         result = prime * result + (ignoreEmptyLines ? 1231 : 1237);
         result = prime * result + (skipHeaderRecord ? 1231 : 1237);
+        result = prime * result + (allowDuplicateHeaderNames ? 1231 : 1237);
+        result = prime * result + (trim ? 1231 : 1237);
+        result = prime * result + (autoFlush ? 1231 : 1237);
+        result = prime * result + (trailingDelimiter ? 1231 : 1237);
+        result = prime * result + (allowMissingColumnNames ? 1231 : 1237);
         result = prime * result + ((recordSeparator == null) ? 0 : recordSeparator.hashCode());
         result = prime * result + Arrays.hashCode(header);
+        result = prime * result + Arrays.hashCode(headerComments);
         return result;
     }
 
@@ -1217,7 +1246,7 @@ public final class CSVFormat implements Serializable {
     /**
      * Prints the {@code value} as the next value on the line to {@code out}. The value will be escaped or encapsulated
      * as needed. Useful when one wants to avoid creating CSVPrinters.
-     *
+     * Trims the value if {@link #getTrim()} is true
      * @param value
      *            value to output.
      * @param out
@@ -1467,6 +1496,10 @@ public final class CSVFormat implements Serializable {
 
         final char delimChar = getDelimiter();
         final char quoteChar = getQuoteCharacter().charValue();
+        // If escape char not specified, default to the quote char
+        // This avoids having to keep checking whether there is an escape character
+        // at the cost of checking against quote twice
+        final char escapeChar = isEscapeCharacterSet() ? getEscapeCharacter().charValue() : quoteChar;
 
         QuoteMode quoteModePolicy = getQuoteMode();
         if (quoteModePolicy == null) {
@@ -1505,7 +1538,7 @@ public final class CSVFormat implements Serializable {
                 } else {
                     while (pos < end) {
                         c = value.charAt(pos);
-                        if (c == LF || c == CR || c == quoteChar || c == delimChar) {
+                        if (c == LF || c == CR || c == quoteChar || c == delimChar || c == escapeChar) {
                             quote = true;
                             break;
                         }
@@ -1547,14 +1580,11 @@ public final class CSVFormat implements Serializable {
         // the need for encapsulation.
         while (pos < end) {
             final char c = value.charAt(pos);
-            if (c == quoteChar) {
+            if (c == quoteChar || c == escapeChar) {
                 // write out the chunk up until this point
-
-                // add 1 to the length to write out the encapsulator also
-                out.append(value, start, pos + 1);
-                // put the next starting position on the encapsulator so we will
-                // write it out again with the next string (effectively doubling it)
-                start = pos;
+                out.append(value, start, pos);
+                out.append(escapeChar); // now output the escape
+                start = pos; // and restart with the matched char
             }
             pos++;
         }
@@ -1622,6 +1652,10 @@ public final class CSVFormat implements Serializable {
         if (isQuoteCharacterSet()) {
             sb.append(' ');
             sb.append("QuoteChar=<").append(quoteCharacter).append('>');
+        }
+        if (quoteMode != null) {
+            sb.append(' ');
+            sb.append("QuoteMode=<").append(quoteMode).append('>');
         }
         if (isCommentMarkerSet()) {
             sb.append(' ');
@@ -1725,7 +1759,7 @@ public final class CSVFormat implements Serializable {
         }
 
         // validate header
-        if (header != null) {
+        if (header != null && !allowDuplicateHeaderNames) {
             final Set<String> dupCheck = new HashSet<>();
             for (final String hdr : header) {
                 if (!dupCheck.add(hdr)) {
@@ -1743,7 +1777,7 @@ public final class CSVFormat implements Serializable {
      * @since 1.7
      */
     public CSVFormat withAllowDuplicateHeaderNames() {
-    	return withAllowDuplicateHeaderNames(true);
+        return withAllowDuplicateHeaderNames(true);
     }
 
     /**
@@ -1754,7 +1788,7 @@ public final class CSVFormat implements Serializable {
      * @since 1.7
      */
     public CSVFormat withAllowDuplicateHeaderNames(final boolean allowDuplicateHeaderNames) {
-    	return new CSVFormat(delimiter, quoteCharacter, quoteMode, commentMarker, escapeCharacter,
+        return new CSVFormat(delimiter, quoteCharacter, quoteMode, commentMarker, escapeCharacter,
                 ignoreSurroundingSpaces, ignoreEmptyLines, recordSeparator, nullString, headerComments, header,
                 skipHeaderRecord, allowMissingColumnNames, ignoreHeaderCase, trim, trailingDelimiter, autoFlush,
                 allowDuplicateHeaderNames);
@@ -2123,9 +2157,9 @@ public final class CSVFormat implements Serializable {
     }
 
     /**
-     * Returns a new {@code CSVFormat} with the trimming behavior of the format set to {@code true}.
+     * Returns a new {@code CSVFormat} with the parser trimming behavior of the format set to {@code true}.
      *
-     * @return A new CSVFormat that is equal to this but with the specified trimming behavior.
+     * @return A new CSVFormat that is equal to this but with the specified parser trimming behavior.
      * @see #withIgnoreSurroundingSpaces(boolean)
      * @since 1.1
      */
@@ -2134,11 +2168,10 @@ public final class CSVFormat implements Serializable {
     }
 
     /**
-     * Returns a new {@code CSVFormat} with the trimming behavior of the format set to the given value.
+     * Returns a new {@code CSVFormat} with the parser trimming behavior of the format set to the given value.
      *
-     * @param ignoreSurroundingSpaces
-     *            the trimming behavior, {@code true} to remove the surrounding spaces, {@code false} to leave the
-     *            spaces as is.
+     * @param ignoreSurroundingSpaces the parser trimming behavior, {@code true} to remove the surrounding spaces,
+     *        {@code false} to leave the spaces as is.
      * @return A new CSVFormat that is equal to this but with the specified trimming behavior.
      */
     public CSVFormat withIgnoreSurroundingSpaces(final boolean ignoreSurroundingSpaces) {
@@ -2326,6 +2359,7 @@ public final class CSVFormat implements Serializable {
 
     /**
      * Returns a new {@code CSVFormat} to trim leading and trailing blanks.
+     * See {@link #getTrim()} for details of where this is used.
      *
      * @return A new CSVFormat that is equal to this but with the trim setting on.
      * @since 1.3
@@ -2336,6 +2370,7 @@ public final class CSVFormat implements Serializable {
 
     /**
      * Returns a new {@code CSVFormat} with whether to trim leading and trailing blanks.
+     * See {@link #getTrim()} for details of where this is used.
      *
      * @param trim
      *            whether to trim leading and trailing blanks.

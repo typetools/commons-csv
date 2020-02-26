@@ -24,10 +24,9 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.csv.QuoteMode;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests https://issues.apache.org/jira/browse/CSV-213
@@ -37,7 +36,7 @@ import org.junit.Test;
  * create a new Iterator you are only created a new view on the same position in the parser's stream. For the behavior
  * you want, you need to open a new CSVParser.
  */
-@Ignore
+@Disabled
 public class JiraCsv213Test {
 
     private void createEndChannel(final File csvFile) {
@@ -52,18 +51,16 @@ public class JiraCsv213Test {
         try (CSVParser parser = csvFormat
                 .parse(new InputStreamReader(new FileInputStream(csvFile), StandardCharsets.UTF_8))) {
             if (parser.iterator().hasNext()) {
-                System.out.println(parser.getCurrentLineNumber());
-                System.out.println(parser.getRecordNumber());
+                // System.out.println(parser.getCurrentLineNumber());
+                // System.out.println(parser.getRecordNumber());
                 // get only first record we don't need other's
-                final CSVRecord firstRecord = parser.iterator().next(); // this fails
+                parser.iterator().next(); // this fails
 
                 return;
             }
         } catch (final IOException e) {
-            throw new IllegalStateException("Error while adding end channel to csv", e);
+            throw new IllegalStateException("Error while adding end channel to CSV", e);
         }
-
-        return;
     }
 
     @Test

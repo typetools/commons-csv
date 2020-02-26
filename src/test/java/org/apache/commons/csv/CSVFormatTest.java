@@ -17,30 +17,33 @@
 
 package org.apache.commons.csv;
 
-import static junit.framework.TestCase.assertNull;
 import static org.apache.commons.csv.CSVFormat.RFC4180;
 import static org.apache.commons.csv.Constants.CR;
 import static org.apache.commons.csv.Constants.CRLF;
 import static org.apache.commons.csv.Constants.LF;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
- *
+ * Tests {@link CSVFormat}.
  */
 public class CSVFormatTest {
 
@@ -61,19 +64,42 @@ public class CSVFormatTest {
         return format.withDelimiter(format.getDelimiter());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    private void assertNotEquals(final String name, final String type, final Object left, final Object right) {
+        if (left.equals(right) || right.equals(left)) {
+            fail("Objects must not compare equal for " + name + "(" + type + ")");
+        }
+        if (left.hashCode() == right.hashCode()) {
+            fail("Hash code should not be equal for " + name + "(" + type + ")");
+        }
+    }
+
+    @Test
     public void testDelimiterSameAsCommentStartThrowsException() {
-        CSVFormat.DEFAULT.withDelimiter('!').withCommentMarker('!');
+        assertThrows(IllegalArgumentException.class, () -> CSVFormat.DEFAULT.withDelimiter('!').withCommentMarker('!'));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testDelimiterSameAsEscapeThrowsException() {
-        CSVFormat.DEFAULT.withDelimiter('!').withEscape('!');
+        assertThrows(IllegalArgumentException.class, () -> CSVFormat.DEFAULT.withDelimiter('!').withEscape('!'));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testDuplicateHeaderElements() {
-        CSVFormat.DEFAULT.withHeader("A", "A");
+        final String[] header = { "A", "A" };
+        final CSVFormat format = CSVFormat.DEFAULT.withHeader(header);
+        assertEquals(2, format.getHeader().length);
+        assertArrayEquals(header, format.getHeader());
+    }
+
+    @Test
+    public void testDuplicateHeaderElementsFalse() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> CSVFormat.DEFAULT.withAllowDuplicateHeaderNames(false).withHeader("A", "A"));
+    }
+
+    public void testDuplicateHeaderElementsTrue() {
+        CSVFormat.DEFAULT.withAllowDuplicateHeaderNames(true).withHeader("A", "A");
     }
 
     @Test
@@ -123,6 +149,54 @@ public class CSVFormatTest {
                 .withEscape('!');
 
         assertNotEquals(right, left);
+    }
+
+    @Test
+    public void testEqualsHash() throws Exception {
+        final Method[] methods = CSVFormat.class.getDeclaredMethods();
+        for (final Method method : methods) {
+            if (Modifier.isPublic(method.getModifiers())) {
+               final String name = method.getName();
+               if (name.startsWith("with")) {
+                   for (final Class<?> cls : method.getParameterTypes()) {
+                       final String type = cls.getCanonicalName();
+                       if ("boolean".equals(type)) {
+                           final Object defTrue = method.invoke(CSVFormat.DEFAULT, new Object[] {Boolean.TRUE});
+                           final Object defFalse = method.invoke(CSVFormat.DEFAULT, new Object[] {Boolean.FALSE});
+                           assertNotEquals(name, type ,defTrue, defFalse);
+                       } else if ("char".equals(type)){
+                           final Object a = method.invoke(CSVFormat.DEFAULT, new Object[] {'a'});
+                           final Object b = method.invoke(CSVFormat.DEFAULT, new Object[] {'b'});
+                           assertNotEquals(name, type, a, b);
+                       } else if ("java.lang.Character".equals(type)){
+                           final Object a = method.invoke(CSVFormat.DEFAULT, new Object[] {null});
+                           final Object b = method.invoke(CSVFormat.DEFAULT, new Object[] {new Character('d')});
+                           assertNotEquals(name, type, a, b);
+                       } else if ("java.lang.String".equals(type)){
+                           final Object a = method.invoke(CSVFormat.DEFAULT, new Object[] {null});
+                           final Object b = method.invoke(CSVFormat.DEFAULT, new Object[] {"e"});
+                           assertNotEquals(name, type, a, b);
+                       } else if ("java.lang.String[]".equals(type)){
+                           final Object a = method.invoke(CSVFormat.DEFAULT, new Object[] {new String[] {null, null}});
+                           final Object b = method.invoke(CSVFormat.DEFAULT, new Object[] {new String[] {"f", "g"}});
+                           assertNotEquals(name, type, a, b);
+                       } else if ("org.apache.commons.csv.QuoteMode".equals(type)){
+                           final Object a = method.invoke(CSVFormat.DEFAULT, new Object[] {QuoteMode.MINIMAL});
+                           final Object b = method.invoke(CSVFormat.DEFAULT, new Object[] {QuoteMode.ALL});
+                           assertNotEquals(name, type, a, b);
+                       } else if ("java.lang.Object[]".equals(type)){
+                           final Object a = method.invoke(CSVFormat.DEFAULT, new Object[] {new Object[] {null, null}});
+                           final Object b = method.invoke(CSVFormat.DEFAULT, new Object[] {new Object[] {new Object(), new Object()}});
+                           assertNotEquals(name, type, a, b);
+                       } else if ("withHeader".equals(name)){ // covered above by String[]
+                           // ignored
+                       } else {
+                           fail("Unhandled method: "+name + "(" + type + ")");
+                       }
+                   }
+               }
+            }
+         }
     }
 
     @Test
@@ -207,129 +281,129 @@ public class CSVFormatTest {
     @Test
     public void testEqualsOne() {
 
-        final CSVFormat cSVFormatOne = CSVFormat.INFORMIX_UNLOAD;
-        final CSVFormat cSVFormatTwo = CSVFormat.MYSQL;
+        final CSVFormat csvFormatOne = CSVFormat.INFORMIX_UNLOAD;
+        final CSVFormat csvFormatTwo = CSVFormat.MYSQL;
 
 
-        assertEquals('\\', (char)cSVFormatOne.getEscapeCharacter());
-        assertNull(cSVFormatOne.getQuoteMode());
+        assertEquals('\\', (char)csvFormatOne.getEscapeCharacter());
+        assertNull(csvFormatOne.getQuoteMode());
 
-        assertTrue(cSVFormatOne.getIgnoreEmptyLines());
-        assertFalse(cSVFormatOne.getSkipHeaderRecord());
+        assertTrue(csvFormatOne.getIgnoreEmptyLines());
+        assertFalse(csvFormatOne.getSkipHeaderRecord());
 
-        assertFalse(cSVFormatOne.getIgnoreHeaderCase());
-        assertNull(cSVFormatOne.getCommentMarker());
+        assertFalse(csvFormatOne.getIgnoreHeaderCase());
+        assertNull(csvFormatOne.getCommentMarker());
 
-        assertFalse(cSVFormatOne.isCommentMarkerSet());
-        assertTrue(cSVFormatOne.isQuoteCharacterSet());
+        assertFalse(csvFormatOne.isCommentMarkerSet());
+        assertTrue(csvFormatOne.isQuoteCharacterSet());
 
-        assertEquals('|', cSVFormatOne.getDelimiter());
-        assertFalse(cSVFormatOne.getAllowMissingColumnNames());
+        assertEquals('|', csvFormatOne.getDelimiter());
+        assertFalse(csvFormatOne.getAllowMissingColumnNames());
 
-        assertTrue(cSVFormatOne.isEscapeCharacterSet());
-        assertEquals("\n", cSVFormatOne.getRecordSeparator());
+        assertTrue(csvFormatOne.isEscapeCharacterSet());
+        assertEquals("\n", csvFormatOne.getRecordSeparator());
 
-        assertEquals('\"', (char)cSVFormatOne.getQuoteCharacter());
-        assertFalse(cSVFormatOne.getTrailingDelimiter());
+        assertEquals('\"', (char)csvFormatOne.getQuoteCharacter());
+        assertFalse(csvFormatOne.getTrailingDelimiter());
 
-        assertFalse(cSVFormatOne.getTrim());
-        assertFalse(cSVFormatOne.isNullStringSet());
+        assertFalse(csvFormatOne.getTrim());
+        assertFalse(csvFormatOne.isNullStringSet());
 
-        assertNull(cSVFormatOne.getNullString());
-        assertFalse(cSVFormatOne.getIgnoreSurroundingSpaces());
+        assertNull(csvFormatOne.getNullString());
+        assertFalse(csvFormatOne.getIgnoreSurroundingSpaces());
 
 
-        assertTrue(cSVFormatTwo.isEscapeCharacterSet());
-        assertNull(cSVFormatTwo.getQuoteCharacter());
+        assertTrue(csvFormatTwo.isEscapeCharacterSet());
+        assertNull(csvFormatTwo.getQuoteCharacter());
 
-        assertFalse(cSVFormatTwo.getAllowMissingColumnNames());
-        assertEquals(QuoteMode.ALL_NON_NULL, cSVFormatTwo.getQuoteMode());
+        assertFalse(csvFormatTwo.getAllowMissingColumnNames());
+        assertEquals(QuoteMode.ALL_NON_NULL, csvFormatTwo.getQuoteMode());
 
-        assertEquals('\t', cSVFormatTwo.getDelimiter());
-        assertEquals("\n", cSVFormatTwo.getRecordSeparator());
+        assertEquals('\t', csvFormatTwo.getDelimiter());
+        assertEquals("\n", csvFormatTwo.getRecordSeparator());
 
-        assertFalse(cSVFormatTwo.isQuoteCharacterSet());
-        assertTrue(cSVFormatTwo.isNullStringSet());
+        assertFalse(csvFormatTwo.isQuoteCharacterSet());
+        assertTrue(csvFormatTwo.isNullStringSet());
 
-        assertEquals('\\', (char)cSVFormatTwo.getEscapeCharacter());
-        assertFalse(cSVFormatTwo.getIgnoreHeaderCase());
+        assertEquals('\\', (char)csvFormatTwo.getEscapeCharacter());
+        assertFalse(csvFormatTwo.getIgnoreHeaderCase());
 
-        assertFalse(cSVFormatTwo.getTrim());
-        assertFalse(cSVFormatTwo.getIgnoreEmptyLines());
+        assertFalse(csvFormatTwo.getTrim());
+        assertFalse(csvFormatTwo.getIgnoreEmptyLines());
 
-        assertEquals("\\N", cSVFormatTwo.getNullString());
-        assertFalse(cSVFormatTwo.getIgnoreSurroundingSpaces());
+        assertEquals("\\N", csvFormatTwo.getNullString());
+        assertFalse(csvFormatTwo.getIgnoreSurroundingSpaces());
 
-        assertFalse(cSVFormatTwo.getTrailingDelimiter());
-        assertFalse(cSVFormatTwo.getSkipHeaderRecord());
+        assertFalse(csvFormatTwo.getTrailingDelimiter());
+        assertFalse(csvFormatTwo.getSkipHeaderRecord());
 
-        assertNull(cSVFormatTwo.getCommentMarker());
-        assertFalse(cSVFormatTwo.isCommentMarkerSet());
+        assertNull(csvFormatTwo.getCommentMarker());
+        assertFalse(csvFormatTwo.isCommentMarkerSet());
 
-        assertNotSame(cSVFormatTwo, cSVFormatOne);
-        assertFalse(cSVFormatTwo.equals(cSVFormatOne));
+        assertNotSame(csvFormatTwo, csvFormatOne);
+        assertFalse(csvFormatTwo.equals(csvFormatOne));
 
-        assertEquals('\\', (char)cSVFormatOne.getEscapeCharacter());
-        assertNull(cSVFormatOne.getQuoteMode());
+        assertEquals('\\', (char)csvFormatOne.getEscapeCharacter());
+        assertNull(csvFormatOne.getQuoteMode());
 
-        assertTrue(cSVFormatOne.getIgnoreEmptyLines());
-        assertFalse(cSVFormatOne.getSkipHeaderRecord());
+        assertTrue(csvFormatOne.getIgnoreEmptyLines());
+        assertFalse(csvFormatOne.getSkipHeaderRecord());
 
-        assertFalse(cSVFormatOne.getIgnoreHeaderCase());
-        assertNull(cSVFormatOne.getCommentMarker());
+        assertFalse(csvFormatOne.getIgnoreHeaderCase());
+        assertNull(csvFormatOne.getCommentMarker());
 
-        assertFalse(cSVFormatOne.isCommentMarkerSet());
-        assertTrue(cSVFormatOne.isQuoteCharacterSet());
+        assertFalse(csvFormatOne.isCommentMarkerSet());
+        assertTrue(csvFormatOne.isQuoteCharacterSet());
 
-        assertEquals('|', cSVFormatOne.getDelimiter());
-        assertFalse(cSVFormatOne.getAllowMissingColumnNames());
+        assertEquals('|', csvFormatOne.getDelimiter());
+        assertFalse(csvFormatOne.getAllowMissingColumnNames());
 
-        assertTrue(cSVFormatOne.isEscapeCharacterSet());
-        assertEquals("\n", cSVFormatOne.getRecordSeparator());
+        assertTrue(csvFormatOne.isEscapeCharacterSet());
+        assertEquals("\n", csvFormatOne.getRecordSeparator());
 
-        assertEquals('\"', (char)cSVFormatOne.getQuoteCharacter());
-        assertFalse(cSVFormatOne.getTrailingDelimiter());
+        assertEquals('\"', (char)csvFormatOne.getQuoteCharacter());
+        assertFalse(csvFormatOne.getTrailingDelimiter());
 
-        assertFalse(cSVFormatOne.getTrim());
-        assertFalse(cSVFormatOne.isNullStringSet());
+        assertFalse(csvFormatOne.getTrim());
+        assertFalse(csvFormatOne.isNullStringSet());
 
-        assertNull(cSVFormatOne.getNullString());
-        assertFalse(cSVFormatOne.getIgnoreSurroundingSpaces());
+        assertNull(csvFormatOne.getNullString());
+        assertFalse(csvFormatOne.getIgnoreSurroundingSpaces());
 
-        assertTrue(cSVFormatTwo.isEscapeCharacterSet());
-        assertNull(cSVFormatTwo.getQuoteCharacter());
+        assertTrue(csvFormatTwo.isEscapeCharacterSet());
+        assertNull(csvFormatTwo.getQuoteCharacter());
 
-        assertFalse(cSVFormatTwo.getAllowMissingColumnNames());
-        assertEquals(QuoteMode.ALL_NON_NULL, cSVFormatTwo.getQuoteMode());
+        assertFalse(csvFormatTwo.getAllowMissingColumnNames());
+        assertEquals(QuoteMode.ALL_NON_NULL, csvFormatTwo.getQuoteMode());
 
-        assertEquals('\t', cSVFormatTwo.getDelimiter());
-        assertEquals("\n", cSVFormatTwo.getRecordSeparator());
+        assertEquals('\t', csvFormatTwo.getDelimiter());
+        assertEquals("\n", csvFormatTwo.getRecordSeparator());
 
-        assertFalse(cSVFormatTwo.isQuoteCharacterSet());
-        assertTrue(cSVFormatTwo.isNullStringSet());
+        assertFalse(csvFormatTwo.isQuoteCharacterSet());
+        assertTrue(csvFormatTwo.isNullStringSet());
 
-        assertEquals('\\', (char)cSVFormatTwo.getEscapeCharacter());
-        assertFalse(cSVFormatTwo.getIgnoreHeaderCase());
+        assertEquals('\\', (char)csvFormatTwo.getEscapeCharacter());
+        assertFalse(csvFormatTwo.getIgnoreHeaderCase());
 
-        assertFalse(cSVFormatTwo.getTrim());
-        assertFalse(cSVFormatTwo.getIgnoreEmptyLines());
+        assertFalse(csvFormatTwo.getTrim());
+        assertFalse(csvFormatTwo.getIgnoreEmptyLines());
 
-        assertEquals("\\N", cSVFormatTwo.getNullString());
-        assertFalse(cSVFormatTwo.getIgnoreSurroundingSpaces());
+        assertEquals("\\N", csvFormatTwo.getNullString());
+        assertFalse(csvFormatTwo.getIgnoreSurroundingSpaces());
 
-        assertFalse(cSVFormatTwo.getTrailingDelimiter());
-        assertFalse(cSVFormatTwo.getSkipHeaderRecord());
+        assertFalse(csvFormatTwo.getTrailingDelimiter());
+        assertFalse(csvFormatTwo.getSkipHeaderRecord());
 
-        assertNull(cSVFormatTwo.getCommentMarker());
-        assertFalse(cSVFormatTwo.isCommentMarkerSet());
+        assertNull(csvFormatTwo.getCommentMarker());
+        assertFalse(csvFormatTwo.isCommentMarkerSet());
 
-        assertNotSame(cSVFormatOne, cSVFormatTwo);
-        assertNotSame(cSVFormatTwo, cSVFormatOne);
+        assertNotSame(csvFormatOne, csvFormatTwo);
+        assertNotSame(csvFormatTwo, csvFormatOne);
 
-        assertFalse(cSVFormatOne.equals(cSVFormatTwo));
-        assertFalse(cSVFormatTwo.equals(cSVFormatOne));
+        assertFalse(csvFormatOne.equals(csvFormatTwo));
+        assertFalse(csvFormatTwo.equals(csvFormatOne));
 
-        assertFalse(cSVFormatTwo.equals(cSVFormatOne));
+        assertFalse(csvFormatTwo.equals(csvFormatOne));
 
     }
 
@@ -389,75 +463,77 @@ public class CSVFormatTest {
     @Test
     public void testEqualsWithNull() {
 
-        final CSVFormat cSVFormat = CSVFormat.POSTGRESQL_TEXT;
+        final CSVFormat csvFormat = CSVFormat.POSTGRESQL_TEXT;
 
-        assertEquals('\\', (char)cSVFormat.getEscapeCharacter());
-        assertFalse(cSVFormat.getIgnoreSurroundingSpaces());
+        assertEquals('\\', (char)csvFormat.getEscapeCharacter());
+        assertFalse(csvFormat.getIgnoreSurroundingSpaces());
 
-        assertFalse(cSVFormat.getTrailingDelimiter());
-        assertFalse(cSVFormat.getTrim());
+        assertFalse(csvFormat.getTrailingDelimiter());
+        assertFalse(csvFormat.getTrim());
 
-        assertTrue(cSVFormat.isQuoteCharacterSet());
-        assertEquals("\\N", cSVFormat.getNullString());
+        assertTrue(csvFormat.isQuoteCharacterSet());
+        assertEquals("\\N", csvFormat.getNullString());
 
-        assertFalse(cSVFormat.getIgnoreHeaderCase());
-        assertTrue(cSVFormat.isEscapeCharacterSet());
+        assertFalse(csvFormat.getIgnoreHeaderCase());
+        assertTrue(csvFormat.isEscapeCharacterSet());
 
-        assertFalse(cSVFormat.isCommentMarkerSet());
-        assertNull(cSVFormat.getCommentMarker());
+        assertFalse(csvFormat.isCommentMarkerSet());
+        assertNull(csvFormat.getCommentMarker());
 
-        assertFalse(cSVFormat.getAllowMissingColumnNames());
-        assertEquals(QuoteMode.ALL_NON_NULL, cSVFormat.getQuoteMode());
+        assertFalse(csvFormat.getAllowMissingColumnNames());
+        assertEquals(QuoteMode.ALL_NON_NULL, csvFormat.getQuoteMode());
 
-        assertEquals('\t', cSVFormat.getDelimiter());
-        assertFalse(cSVFormat.getSkipHeaderRecord());
+        assertEquals('\t', csvFormat.getDelimiter());
+        assertFalse(csvFormat.getSkipHeaderRecord());
 
-        assertEquals("\n", cSVFormat.getRecordSeparator());
-        assertFalse(cSVFormat.getIgnoreEmptyLines());
+        assertEquals("\n", csvFormat.getRecordSeparator());
+        assertFalse(csvFormat.getIgnoreEmptyLines());
 
-        assertEquals('\"', (char)cSVFormat.getQuoteCharacter());
-        assertTrue(cSVFormat.isNullStringSet());
+        assertEquals('\"', (char)csvFormat.getQuoteCharacter());
+        assertTrue(csvFormat.isNullStringSet());
 
-        assertEquals('\\', (char)cSVFormat.getEscapeCharacter());
-        assertFalse(cSVFormat.getIgnoreSurroundingSpaces());
+        assertEquals('\\', (char)csvFormat.getEscapeCharacter());
+        assertFalse(csvFormat.getIgnoreSurroundingSpaces());
 
-        assertFalse(cSVFormat.getTrailingDelimiter());
-        assertFalse(cSVFormat.getTrim());
+        assertFalse(csvFormat.getTrailingDelimiter());
+        assertFalse(csvFormat.getTrim());
 
-        assertTrue(cSVFormat.isQuoteCharacterSet());
-        assertEquals("\\N", cSVFormat.getNullString());
+        assertTrue(csvFormat.isQuoteCharacterSet());
+        assertEquals("\\N", csvFormat.getNullString());
 
-        assertFalse(cSVFormat.getIgnoreHeaderCase());
-        assertTrue(cSVFormat.isEscapeCharacterSet());
+        assertFalse(csvFormat.getIgnoreHeaderCase());
+        assertTrue(csvFormat.isEscapeCharacterSet());
 
-        assertFalse(cSVFormat.isCommentMarkerSet());
-        assertNull(cSVFormat.getCommentMarker());
+        assertFalse(csvFormat.isCommentMarkerSet());
+        assertNull(csvFormat.getCommentMarker());
 
-        assertFalse(cSVFormat.getAllowMissingColumnNames());
-        assertEquals(QuoteMode.ALL_NON_NULL, cSVFormat.getQuoteMode());
+        assertFalse(csvFormat.getAllowMissingColumnNames());
+        assertEquals(QuoteMode.ALL_NON_NULL, csvFormat.getQuoteMode());
 
-        assertEquals('\t', cSVFormat.getDelimiter());
-        assertFalse(cSVFormat.getSkipHeaderRecord());
+        assertEquals('\t', csvFormat.getDelimiter());
+        assertFalse(csvFormat.getSkipHeaderRecord());
 
-        assertEquals("\n", cSVFormat.getRecordSeparator());
-        assertFalse(cSVFormat.getIgnoreEmptyLines());
+        assertEquals("\n", csvFormat.getRecordSeparator());
+        assertFalse(csvFormat.getIgnoreEmptyLines());
 
-        assertEquals('\"', (char)cSVFormat.getQuoteCharacter());
-        assertTrue(cSVFormat.isNullStringSet());
+        assertEquals('\"', (char)csvFormat.getQuoteCharacter());
+        assertTrue(csvFormat.isNullStringSet());
 
-        assertFalse(cSVFormat.equals( null));
+        assertFalse(csvFormat.equals( null));
 
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testEscapeSameAsCommentStartThrowsException() {
-        CSVFormat.DEFAULT.withEscape('!').withCommentMarker('!');
+        assertThrows(IllegalArgumentException.class, () -> CSVFormat.DEFAULT.withEscape('!').withCommentMarker('!'));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testEscapeSameAsCommentStartThrowsExceptionForWrapperType() {
         // Cannot assume that callers won't use different Character objects
-        CSVFormat.DEFAULT.withEscape(new Character('!')).withCommentMarker(new Character('!'));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> CSVFormat.DEFAULT.withEscape(new Character('!')).withCommentMarker(new Character('!')));
     }
 
     @Test
@@ -472,19 +548,14 @@ public class CSVFormatTest {
     @Test  //I assume this to be a defect.
     public void testFormatThrowsNullPointerException() {
 
-        final CSVFormat cSVFormat = CSVFormat.MYSQL;
+        final CSVFormat csvFormat = CSVFormat.MYSQL;
 
-        try {
-            cSVFormat.format((Object[]) null);
-            fail("Expecting exception: NullPointerException");
-        } catch(final NullPointerException e) {
-            assertEquals(CSVFormat.class.getName(), e.getStackTrace()[0].getClassName());
-        }
-
+        final NullPointerException e = assertThrows(NullPointerException.class, () -> csvFormat.format((Object[]) null));
+        assertEquals(CSVFormat.class.getName(), e.getStackTrace()[0].getClassName());
     }
 
     @Test
-    public void testGetHeader() throws Exception {
+    public void testGetHeader() {
         final String[] header = new String[]{"one", "two", "three"};
         final CSVFormat formatWithHeader = CSVFormat.DEFAULT.withHeader(header);
         // getHeader() makes a copy of the header array.
@@ -499,78 +570,84 @@ public class CSVFormatTest {
     @Test
     public void testHashCodeAndWithIgnoreHeaderCase() {
 
-        final CSVFormat cSVFormat = CSVFormat.INFORMIX_UNLOAD_CSV;
-        final CSVFormat cSVFormatTwo = cSVFormat.withIgnoreHeaderCase();
-        cSVFormatTwo.hashCode();
+        final CSVFormat csvFormat = CSVFormat.INFORMIX_UNLOAD_CSV;
+        final CSVFormat csvFormatTwo = csvFormat.withIgnoreHeaderCase();
+        csvFormatTwo.hashCode();
 
-        assertTrue(cSVFormatTwo.getIgnoreHeaderCase());
-        assertFalse(cSVFormatTwo.getTrailingDelimiter());
+        assertFalse(csvFormat.getIgnoreHeaderCase());
+        assertTrue(csvFormatTwo.getIgnoreHeaderCase()); // now different
+        assertFalse(csvFormatTwo.getTrailingDelimiter());
 
-        assertTrue(cSVFormatTwo.equals(cSVFormat));
-        assertFalse(cSVFormatTwo.getAllowMissingColumnNames());
+        assertFalse(csvFormatTwo.equals(csvFormat)); // CSV-244 - should not be equal
+        assertFalse(csvFormatTwo.getAllowMissingColumnNames());
 
-        assertFalse(cSVFormatTwo.getTrim());
+        assertFalse(csvFormatTwo.getTrim());
 
+    }
+
+    @Test
+    public void testJiraCsv236() {
+        CSVFormat.DEFAULT.withAllowDuplicateHeaderNames().withHeader("CC","VV","VV");
     }
 
     @Test
     public void testNewFormat() {
 
-        final CSVFormat cSVFormat = CSVFormat.newFormat('X');
+        final CSVFormat csvFormat = CSVFormat.newFormat('X');
 
-        assertFalse(cSVFormat.getSkipHeaderRecord());
-        assertFalse(cSVFormat.isEscapeCharacterSet());
+        assertFalse(csvFormat.getSkipHeaderRecord());
+        assertFalse(csvFormat.isEscapeCharacterSet());
 
-        assertNull(cSVFormat.getRecordSeparator());
-        assertNull(cSVFormat.getQuoteMode());
+        assertNull(csvFormat.getRecordSeparator());
+        assertNull(csvFormat.getQuoteMode());
 
-        assertNull(cSVFormat.getCommentMarker());
-        assertFalse(cSVFormat.getIgnoreHeaderCase());
+        assertNull(csvFormat.getCommentMarker());
+        assertFalse(csvFormat.getIgnoreHeaderCase());
 
-        assertFalse(cSVFormat.getAllowMissingColumnNames());
-        assertFalse(cSVFormat.getTrim());
+        assertFalse(csvFormat.getAllowMissingColumnNames());
+        assertFalse(csvFormat.getTrim());
 
-        assertFalse(cSVFormat.isNullStringSet());
-        assertNull(cSVFormat.getEscapeCharacter());
+        assertFalse(csvFormat.isNullStringSet());
+        assertNull(csvFormat.getEscapeCharacter());
 
-        assertFalse(cSVFormat.getIgnoreSurroundingSpaces());
-        assertFalse(cSVFormat.getTrailingDelimiter());
+        assertFalse(csvFormat.getIgnoreSurroundingSpaces());
+        assertFalse(csvFormat.getTrailingDelimiter());
 
-        assertEquals('X', cSVFormat.getDelimiter());
-        assertNull(cSVFormat.getNullString());
+        assertEquals('X', csvFormat.getDelimiter());
+        assertNull(csvFormat.getNullString());
 
-        assertFalse(cSVFormat.isQuoteCharacterSet());
-        assertFalse(cSVFormat.isCommentMarkerSet());
+        assertFalse(csvFormat.isQuoteCharacterSet());
+        assertFalse(csvFormat.isCommentMarkerSet());
 
-        assertNull(cSVFormat.getQuoteCharacter());
-        assertFalse(cSVFormat.getIgnoreEmptyLines());
+        assertNull(csvFormat.getQuoteCharacter());
+        assertFalse(csvFormat.getIgnoreEmptyLines());
 
-        assertFalse(cSVFormat.getSkipHeaderRecord());
-        assertFalse(cSVFormat.isEscapeCharacterSet());
+        assertFalse(csvFormat.getSkipHeaderRecord());
+        assertFalse(csvFormat.isEscapeCharacterSet());
 
-        assertNull(cSVFormat.getRecordSeparator());
-        assertNull(cSVFormat.getQuoteMode());
+        assertNull(csvFormat.getRecordSeparator());
+        assertNull(csvFormat.getQuoteMode());
 
-        assertNull(cSVFormat.getCommentMarker());
-        assertFalse(cSVFormat.getIgnoreHeaderCase());
+        assertNull(csvFormat.getCommentMarker());
+        assertFalse(csvFormat.getIgnoreHeaderCase());
 
-        assertFalse(cSVFormat.getAllowMissingColumnNames());
-        assertFalse(cSVFormat.getTrim());
+        assertFalse(csvFormat.getAllowMissingColumnNames());
+        assertFalse(csvFormat.getTrim());
 
-        assertFalse(cSVFormat.isNullStringSet());
-        assertNull(cSVFormat.getEscapeCharacter());
+        assertFalse(csvFormat.isNullStringSet());
+        assertNull(csvFormat.getEscapeCharacter());
 
-        assertFalse(cSVFormat.getIgnoreSurroundingSpaces());
-        assertFalse(cSVFormat.getTrailingDelimiter());
+        assertFalse(csvFormat.getIgnoreSurroundingSpaces());
+        assertFalse(csvFormat.getTrailingDelimiter());
 
-        assertEquals('X', cSVFormat.getDelimiter());
-        assertNull(cSVFormat.getNullString());
+        assertEquals('X', csvFormat.getDelimiter());
+        assertNull(csvFormat.getNullString());
 
-        assertFalse(cSVFormat.isQuoteCharacterSet());
-        assertFalse(cSVFormat.isCommentMarkerSet());
+        assertFalse(csvFormat.isQuoteCharacterSet());
+        assertFalse(csvFormat.isCommentMarkerSet());
 
-        assertNull(cSVFormat.getQuoteCharacter());
-        assertFalse(cSVFormat.getIgnoreEmptyLines());
+        assertNull(csvFormat.getQuoteCharacter());
+        assertFalse(csvFormat.getIgnoreEmptyLines());
 
     }
 
@@ -582,25 +659,27 @@ public class CSVFormatTest {
         assertFalse(formatStr.endsWith("null"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testQuoteCharSameAsCommentStartThrowsException() {
-        CSVFormat.DEFAULT.withQuote('!').withCommentMarker('!');
+        assertThrows(IllegalArgumentException.class, () -> CSVFormat.DEFAULT.withQuote('!').withCommentMarker('!'));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testQuoteCharSameAsCommentStartThrowsExceptionForWrapperType() {
         // Cannot assume that callers won't use different Character objects
-        CSVFormat.DEFAULT.withQuote(new Character('!')).withCommentMarker('!');
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> CSVFormat.DEFAULT.withQuote(new Character('!')).withCommentMarker('!'));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testQuoteCharSameAsDelimiterThrowsException() {
-        CSVFormat.DEFAULT.withQuote('!').withDelimiter('!');
+        assertThrows(IllegalArgumentException.class, () -> CSVFormat.DEFAULT.withQuote('!').withDelimiter('!'));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testQuotePolicyNoneWithoutEscapeThrowsException() {
-        CSVFormat.newFormat('!').withQuoteMode(QuoteMode.NONE);
+        assertThrows(IllegalArgumentException.class, () -> CSVFormat.newFormat('!').withQuoteMode(QuoteMode.NONE));
     }
 
     @Test
@@ -628,13 +707,13 @@ public class CSVFormatTest {
         final CSVFormat format = (CSVFormat) in.readObject();
 
         assertNotNull(format);
-        assertEquals("delimiter", CSVFormat.DEFAULT.getDelimiter(), format.getDelimiter());
-        assertEquals("encapsulator", CSVFormat.DEFAULT.getQuoteCharacter(), format.getQuoteCharacter());
-        assertEquals("comment start", CSVFormat.DEFAULT.getCommentMarker(), format.getCommentMarker());
-        assertEquals("record separator", CSVFormat.DEFAULT.getRecordSeparator(), format.getRecordSeparator());
-        assertEquals("escape", CSVFormat.DEFAULT.getEscapeCharacter(), format.getEscapeCharacter());
-        assertEquals("trim", CSVFormat.DEFAULT.getIgnoreSurroundingSpaces(), format.getIgnoreSurroundingSpaces());
-        assertEquals("empty lines", CSVFormat.DEFAULT.getIgnoreEmptyLines(), format.getIgnoreEmptyLines());
+        assertEquals(CSVFormat.DEFAULT.getDelimiter(), format.getDelimiter(), "delimiter");
+        assertEquals(CSVFormat.DEFAULT.getQuoteCharacter(), format.getQuoteCharacter(), "encapsulator");
+        assertEquals(CSVFormat.DEFAULT.getCommentMarker(), format.getCommentMarker(), "comment start");
+        assertEquals(CSVFormat.DEFAULT.getRecordSeparator(), format.getRecordSeparator(), "record separator");
+        assertEquals(CSVFormat.DEFAULT.getEscapeCharacter(), format.getEscapeCharacter(), "escape");
+        assertEquals(CSVFormat.DEFAULT.getIgnoreSurroundingSpaces(), format.getIgnoreSurroundingSpaces(), "trim");
+        assertEquals(CSVFormat.DEFAULT.getIgnoreEmptyLines(), format.getIgnoreEmptyLines(), "empty lines");
     }
 
     @Test
@@ -649,213 +728,213 @@ public class CSVFormatTest {
     @Test
     public void testToStringAndWithCommentMarkerTakingCharacter() {
 
-        final CSVFormat.Predefined cSVFormat_Predefined = CSVFormat.Predefined.Default;
-        final CSVFormat cSVFormat = cSVFormat_Predefined.getFormat();
+        final CSVFormat.Predefined csvFormat_Predefined = CSVFormat.Predefined.Default;
+        final CSVFormat csvFormat = csvFormat_Predefined.getFormat();
 
-        assertNull(cSVFormat.getEscapeCharacter());
-        assertTrue(cSVFormat.isQuoteCharacterSet());
+        assertNull(csvFormat.getEscapeCharacter());
+        assertTrue(csvFormat.isQuoteCharacterSet());
 
-        assertFalse(cSVFormat.getTrim());
-        assertFalse(cSVFormat.getIgnoreSurroundingSpaces());
+        assertFalse(csvFormat.getTrim());
+        assertFalse(csvFormat.getIgnoreSurroundingSpaces());
 
-        assertFalse(cSVFormat.getTrailingDelimiter());
-        assertEquals(',', cSVFormat.getDelimiter());
+        assertFalse(csvFormat.getTrailingDelimiter());
+        assertEquals(',', csvFormat.getDelimiter());
 
-        assertFalse(cSVFormat.getIgnoreHeaderCase());
-        assertEquals("\r\n", cSVFormat.getRecordSeparator());
+        assertFalse(csvFormat.getIgnoreHeaderCase());
+        assertEquals("\r\n", csvFormat.getRecordSeparator());
 
-        assertFalse(cSVFormat.isCommentMarkerSet());
-        assertNull(cSVFormat.getCommentMarker());
+        assertFalse(csvFormat.isCommentMarkerSet());
+        assertNull(csvFormat.getCommentMarker());
 
-        assertFalse(cSVFormat.isNullStringSet());
-        assertFalse(cSVFormat.getAllowMissingColumnNames());
+        assertFalse(csvFormat.isNullStringSet());
+        assertFalse(csvFormat.getAllowMissingColumnNames());
 
-        assertFalse(cSVFormat.isEscapeCharacterSet());
-        assertFalse(cSVFormat.getSkipHeaderRecord());
+        assertFalse(csvFormat.isEscapeCharacterSet());
+        assertFalse(csvFormat.getSkipHeaderRecord());
 
-        assertNull(cSVFormat.getNullString());
-        assertNull(cSVFormat.getQuoteMode());
+        assertNull(csvFormat.getNullString());
+        assertNull(csvFormat.getQuoteMode());
 
-        assertTrue(cSVFormat.getIgnoreEmptyLines());
-        assertEquals('\"', (char)cSVFormat.getQuoteCharacter());
+        assertTrue(csvFormat.getIgnoreEmptyLines());
+        assertEquals('\"', (char)csvFormat.getQuoteCharacter());
 
         final Character character = Character.valueOf('n');
 
-        final CSVFormat cSVFormatTwo = cSVFormat.withCommentMarker(character);
+        final CSVFormat csvFormatTwo = csvFormat.withCommentMarker(character);
 
-        assertNull(cSVFormat.getEscapeCharacter());
-        assertTrue(cSVFormat.isQuoteCharacterSet());
+        assertNull(csvFormat.getEscapeCharacter());
+        assertTrue(csvFormat.isQuoteCharacterSet());
 
-        assertFalse(cSVFormat.getTrim());
-        assertFalse(cSVFormat.getIgnoreSurroundingSpaces());
+        assertFalse(csvFormat.getTrim());
+        assertFalse(csvFormat.getIgnoreSurroundingSpaces());
 
-        assertFalse(cSVFormat.getTrailingDelimiter());
-        assertEquals(',', cSVFormat.getDelimiter());
+        assertFalse(csvFormat.getTrailingDelimiter());
+        assertEquals(',', csvFormat.getDelimiter());
 
-        assertFalse(cSVFormat.getIgnoreHeaderCase());
-        assertEquals("\r\n", cSVFormat.getRecordSeparator());
+        assertFalse(csvFormat.getIgnoreHeaderCase());
+        assertEquals("\r\n", csvFormat.getRecordSeparator());
 
-        assertFalse(cSVFormat.isCommentMarkerSet());
-        assertNull(cSVFormat.getCommentMarker());
+        assertFalse(csvFormat.isCommentMarkerSet());
+        assertNull(csvFormat.getCommentMarker());
 
-        assertFalse(cSVFormat.isNullStringSet());
-        assertFalse(cSVFormat.getAllowMissingColumnNames());
+        assertFalse(csvFormat.isNullStringSet());
+        assertFalse(csvFormat.getAllowMissingColumnNames());
 
-        assertFalse(cSVFormat.isEscapeCharacterSet());
-        assertFalse(cSVFormat.getSkipHeaderRecord());
+        assertFalse(csvFormat.isEscapeCharacterSet());
+        assertFalse(csvFormat.getSkipHeaderRecord());
 
-        assertNull(cSVFormat.getNullString());
-        assertNull(cSVFormat.getQuoteMode());
+        assertNull(csvFormat.getNullString());
+        assertNull(csvFormat.getQuoteMode());
 
-        assertTrue(cSVFormat.getIgnoreEmptyLines());
-        assertEquals('\"', (char)cSVFormat.getQuoteCharacter());
+        assertTrue(csvFormat.getIgnoreEmptyLines());
+        assertEquals('\"', (char)csvFormat.getQuoteCharacter());
 
-        assertFalse(cSVFormatTwo.isNullStringSet());
-        assertFalse(cSVFormatTwo.getAllowMissingColumnNames());
+        assertFalse(csvFormatTwo.isNullStringSet());
+        assertFalse(csvFormatTwo.getAllowMissingColumnNames());
 
-        assertEquals('\"', (char)cSVFormatTwo.getQuoteCharacter());
-        assertNull(cSVFormatTwo.getNullString());
+        assertEquals('\"', (char)csvFormatTwo.getQuoteCharacter());
+        assertNull(csvFormatTwo.getNullString());
 
-        assertEquals(',', cSVFormatTwo.getDelimiter());
-        assertFalse(cSVFormatTwo.getTrailingDelimiter());
+        assertEquals(',', csvFormatTwo.getDelimiter());
+        assertFalse(csvFormatTwo.getTrailingDelimiter());
 
-        assertTrue(cSVFormatTwo.isCommentMarkerSet());
-        assertFalse(cSVFormatTwo.getIgnoreHeaderCase());
+        assertTrue(csvFormatTwo.isCommentMarkerSet());
+        assertFalse(csvFormatTwo.getIgnoreHeaderCase());
 
-        assertFalse(cSVFormatTwo.getTrim());
-        assertNull(cSVFormatTwo.getEscapeCharacter());
+        assertFalse(csvFormatTwo.getTrim());
+        assertNull(csvFormatTwo.getEscapeCharacter());
 
-        assertTrue(cSVFormatTwo.isQuoteCharacterSet());
-        assertFalse(cSVFormatTwo.getIgnoreSurroundingSpaces());
+        assertTrue(csvFormatTwo.isQuoteCharacterSet());
+        assertFalse(csvFormatTwo.getIgnoreSurroundingSpaces());
 
-        assertEquals("\r\n", cSVFormatTwo.getRecordSeparator());
-        assertNull(cSVFormatTwo.getQuoteMode());
+        assertEquals("\r\n", csvFormatTwo.getRecordSeparator());
+        assertNull(csvFormatTwo.getQuoteMode());
 
-        assertEquals('n', (char)cSVFormatTwo.getCommentMarker());
-        assertFalse(cSVFormatTwo.getSkipHeaderRecord());
+        assertEquals('n', (char)csvFormatTwo.getCommentMarker());
+        assertFalse(csvFormatTwo.getSkipHeaderRecord());
 
-        assertFalse(cSVFormatTwo.isEscapeCharacterSet());
-        assertTrue(cSVFormatTwo.getIgnoreEmptyLines());
+        assertFalse(csvFormatTwo.isEscapeCharacterSet());
+        assertTrue(csvFormatTwo.getIgnoreEmptyLines());
 
-        assertNotSame(cSVFormat, cSVFormatTwo);
-        assertNotSame(cSVFormatTwo, cSVFormat);
+        assertNotSame(csvFormat, csvFormatTwo);
+        assertNotSame(csvFormatTwo, csvFormat);
 
-        assertFalse(cSVFormatTwo.equals(cSVFormat));
+        assertFalse(csvFormatTwo.equals(csvFormat));
 
-        assertNull(cSVFormat.getEscapeCharacter());
-        assertTrue(cSVFormat.isQuoteCharacterSet());
+        assertNull(csvFormat.getEscapeCharacter());
+        assertTrue(csvFormat.isQuoteCharacterSet());
 
-        assertFalse(cSVFormat.getTrim());
-        assertFalse(cSVFormat.getIgnoreSurroundingSpaces());
+        assertFalse(csvFormat.getTrim());
+        assertFalse(csvFormat.getIgnoreSurroundingSpaces());
 
-        assertFalse(cSVFormat.getTrailingDelimiter());
-        assertEquals(',', cSVFormat.getDelimiter());
+        assertFalse(csvFormat.getTrailingDelimiter());
+        assertEquals(',', csvFormat.getDelimiter());
 
-        assertFalse(cSVFormat.getIgnoreHeaderCase());
-        assertEquals("\r\n", cSVFormat.getRecordSeparator());
+        assertFalse(csvFormat.getIgnoreHeaderCase());
+        assertEquals("\r\n", csvFormat.getRecordSeparator());
 
-        assertFalse(cSVFormat.isCommentMarkerSet());
-        assertNull(cSVFormat.getCommentMarker());
+        assertFalse(csvFormat.isCommentMarkerSet());
+        assertNull(csvFormat.getCommentMarker());
 
-        assertFalse(cSVFormat.isNullStringSet());
-        assertFalse(cSVFormat.getAllowMissingColumnNames());
+        assertFalse(csvFormat.isNullStringSet());
+        assertFalse(csvFormat.getAllowMissingColumnNames());
 
-        assertFalse(cSVFormat.isEscapeCharacterSet());
-        assertFalse(cSVFormat.getSkipHeaderRecord());
+        assertFalse(csvFormat.isEscapeCharacterSet());
+        assertFalse(csvFormat.getSkipHeaderRecord());
 
-        assertNull(cSVFormat.getNullString());
-        assertNull(cSVFormat.getQuoteMode());
+        assertNull(csvFormat.getNullString());
+        assertNull(csvFormat.getQuoteMode());
 
-        assertTrue(cSVFormat.getIgnoreEmptyLines());
-        assertEquals('\"', (char)cSVFormat.getQuoteCharacter());
+        assertTrue(csvFormat.getIgnoreEmptyLines());
+        assertEquals('\"', (char)csvFormat.getQuoteCharacter());
 
-        assertFalse(cSVFormatTwo.isNullStringSet());
-        assertFalse(cSVFormatTwo.getAllowMissingColumnNames());
+        assertFalse(csvFormatTwo.isNullStringSet());
+        assertFalse(csvFormatTwo.getAllowMissingColumnNames());
 
-        assertEquals('\"', (char)cSVFormatTwo.getQuoteCharacter());
-        assertNull(cSVFormatTwo.getNullString());
+        assertEquals('\"', (char)csvFormatTwo.getQuoteCharacter());
+        assertNull(csvFormatTwo.getNullString());
 
-        assertEquals(',', cSVFormatTwo.getDelimiter());
-        assertFalse(cSVFormatTwo.getTrailingDelimiter());
+        assertEquals(',', csvFormatTwo.getDelimiter());
+        assertFalse(csvFormatTwo.getTrailingDelimiter());
 
-        assertTrue(cSVFormatTwo.isCommentMarkerSet());
-        assertFalse(cSVFormatTwo.getIgnoreHeaderCase());
+        assertTrue(csvFormatTwo.isCommentMarkerSet());
+        assertFalse(csvFormatTwo.getIgnoreHeaderCase());
 
-        assertFalse(cSVFormatTwo.getTrim());
-        assertNull(cSVFormatTwo.getEscapeCharacter());
+        assertFalse(csvFormatTwo.getTrim());
+        assertNull(csvFormatTwo.getEscapeCharacter());
 
-        assertTrue(cSVFormatTwo.isQuoteCharacterSet());
-        assertFalse(cSVFormatTwo.getIgnoreSurroundingSpaces());
+        assertTrue(csvFormatTwo.isQuoteCharacterSet());
+        assertFalse(csvFormatTwo.getIgnoreSurroundingSpaces());
 
-        assertEquals("\r\n", cSVFormatTwo.getRecordSeparator());
-        assertNull(cSVFormatTwo.getQuoteMode());
+        assertEquals("\r\n", csvFormatTwo.getRecordSeparator());
+        assertNull(csvFormatTwo.getQuoteMode());
 
-        assertEquals('n', (char)cSVFormatTwo.getCommentMarker());
-        assertFalse(cSVFormatTwo.getSkipHeaderRecord());
+        assertEquals('n', (char)csvFormatTwo.getCommentMarker());
+        assertFalse(csvFormatTwo.getSkipHeaderRecord());
 
-        assertFalse(cSVFormatTwo.isEscapeCharacterSet());
-        assertTrue(cSVFormatTwo.getIgnoreEmptyLines());
+        assertFalse(csvFormatTwo.isEscapeCharacterSet());
+        assertTrue(csvFormatTwo.getIgnoreEmptyLines());
 
-        assertNotSame(cSVFormat, cSVFormatTwo);
-        assertNotSame(cSVFormatTwo, cSVFormat);
+        assertNotSame(csvFormat, csvFormatTwo);
+        assertNotSame(csvFormatTwo, csvFormat);
 
-        assertFalse(cSVFormat.equals(cSVFormatTwo));
+        assertFalse(csvFormat.equals(csvFormatTwo));
 
-        assertFalse(cSVFormatTwo.equals(cSVFormat));
+        assertFalse(csvFormatTwo.equals(csvFormat));
         assertEquals("Delimiter=<,> QuoteChar=<\"> CommentStart=<n> " +
                         "RecordSeparator=<\r\n> EmptyLines:ignored SkipHeaderRecord:false"
-                , cSVFormatTwo.toString());
+                , csvFormatTwo.toString());
 
     }
 
     @Test
-    public void testWithCommentStart() throws Exception {
+    public void testWithCommentStart() {
         final CSVFormat formatWithCommentStart = CSVFormat.DEFAULT.withCommentMarker('#');
         assertEquals( Character.valueOf('#'), formatWithCommentStart.getCommentMarker());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWithCommentStartCRThrowsException() {
-        CSVFormat.DEFAULT.withCommentMarker(CR);
+        assertThrows(IllegalArgumentException.class, () -> CSVFormat.DEFAULT.withCommentMarker(CR));
     }
 
     @Test
-    public void testWithDelimiter() throws Exception {
+    public void testWithDelimiter() {
         final CSVFormat formatWithDelimiter = CSVFormat.DEFAULT.withDelimiter('!');
         assertEquals('!', formatWithDelimiter.getDelimiter());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWithDelimiterLFThrowsException() {
-        CSVFormat.DEFAULT.withDelimiter(LF);
+        assertThrows(IllegalArgumentException.class, () -> CSVFormat.DEFAULT.withDelimiter(LF));
     }
 
     @Test
-    public void testWithEmptyEnum() throws Exception {
+    public void testWithEmptyEnum() {
         final CSVFormat formatWithHeader = CSVFormat.DEFAULT.withHeader(EmptyEnum.class);
-        Assert.assertTrue(formatWithHeader.getHeader().length == 0);
+        assertTrue(formatWithHeader.getHeader().length == 0);
     }
 
     @Test
-    public void testWithEscape() throws Exception {
+    public void testWithEscape() {
         final CSVFormat formatWithEscape = CSVFormat.DEFAULT.withEscape('&');
         assertEquals(Character.valueOf('&'), formatWithEscape.getEscapeCharacter());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWithEscapeCRThrowsExceptions() {
-        CSVFormat.DEFAULT.withEscape(CR);
+        assertThrows(IllegalArgumentException.class, () -> CSVFormat.DEFAULT.withEscape(CR));
     }
 
     @Test
-    public void testWithFirstRecordAsHeader() throws Exception {
+    public void testWithFirstRecordAsHeader() {
         final CSVFormat formatWithFirstRecordAsHeader = CSVFormat.DEFAULT.withFirstRecordAsHeader();
         assertTrue(formatWithFirstRecordAsHeader.getSkipHeaderRecord());
         assertTrue(formatWithFirstRecordAsHeader.getHeader().length == 0);
     }
 
     @Test
-    public void testWithHeader() throws Exception {
+    public void testWithHeader() {
         final String[] header = new String[]{"one", "two", "three"};
         // withHeader() makes a copy of the header array.
         final CSVFormat formatWithHeader = CSVFormat.DEFAULT.withHeader(header);
@@ -863,235 +942,235 @@ public class CSVFormatTest {
         assertNotSame(header, formatWithHeader.getHeader());
     }
 
+
     @Test
     public void testWithHeaderComments() {
 
-        final CSVFormat cSVFormat = CSVFormat.DEFAULT;
+        final CSVFormat csvFormat = CSVFormat.DEFAULT;
 
-        assertEquals('\"', (char)cSVFormat.getQuoteCharacter());
-        assertFalse(cSVFormat.isCommentMarkerSet());
+        assertEquals('\"', (char)csvFormat.getQuoteCharacter());
+        assertFalse(csvFormat.isCommentMarkerSet());
 
-        assertFalse(cSVFormat.isEscapeCharacterSet());
-        assertTrue(cSVFormat.isQuoteCharacterSet());
+        assertFalse(csvFormat.isEscapeCharacterSet());
+        assertTrue(csvFormat.isQuoteCharacterSet());
 
-        assertFalse(cSVFormat.getSkipHeaderRecord());
-        assertNull(cSVFormat.getQuoteMode());
+        assertFalse(csvFormat.getSkipHeaderRecord());
+        assertNull(csvFormat.getQuoteMode());
 
-        assertEquals(',', cSVFormat.getDelimiter());
-        assertTrue(cSVFormat.getIgnoreEmptyLines());
+        assertEquals(',', csvFormat.getDelimiter());
+        assertTrue(csvFormat.getIgnoreEmptyLines());
 
-        assertFalse(cSVFormat.getIgnoreHeaderCase());
-        assertNull(cSVFormat.getCommentMarker());
+        assertFalse(csvFormat.getIgnoreHeaderCase());
+        assertNull(csvFormat.getCommentMarker());
 
-        assertEquals("\r\n", cSVFormat.getRecordSeparator());
-        assertFalse(cSVFormat.getTrailingDelimiter());
+        assertEquals("\r\n", csvFormat.getRecordSeparator());
+        assertFalse(csvFormat.getTrailingDelimiter());
 
-        assertFalse(cSVFormat.getAllowMissingColumnNames());
-        assertFalse(cSVFormat.getTrim());
+        assertFalse(csvFormat.getAllowMissingColumnNames());
+        assertFalse(csvFormat.getTrim());
 
-        assertFalse(cSVFormat.isNullStringSet());
-        assertNull(cSVFormat.getNullString());
+        assertFalse(csvFormat.isNullStringSet());
+        assertNull(csvFormat.getNullString());
 
-        assertFalse(cSVFormat.getIgnoreSurroundingSpaces());
-        assertNull(cSVFormat.getEscapeCharacter());
+        assertFalse(csvFormat.getIgnoreSurroundingSpaces());
+        assertNull(csvFormat.getEscapeCharacter());
 
         final Object[] objectArray = new Object[8];
-        final CSVFormat cSVFormatTwo = cSVFormat.withHeaderComments(objectArray);
+        final CSVFormat csvFormatTwo = csvFormat.withHeaderComments(objectArray);
 
-        assertEquals('\"', (char)cSVFormat.getQuoteCharacter());
-        assertFalse(cSVFormat.isCommentMarkerSet());
+        assertEquals('\"', (char)csvFormat.getQuoteCharacter());
+        assertFalse(csvFormat.isCommentMarkerSet());
 
-        assertFalse(cSVFormat.isEscapeCharacterSet());
-        assertTrue(cSVFormat.isQuoteCharacterSet());
+        assertFalse(csvFormat.isEscapeCharacterSet());
+        assertTrue(csvFormat.isQuoteCharacterSet());
 
-        assertFalse(cSVFormat.getSkipHeaderRecord());
-        assertNull(cSVFormat.getQuoteMode());
+        assertFalse(csvFormat.getSkipHeaderRecord());
+        assertNull(csvFormat.getQuoteMode());
 
-        assertEquals(',', cSVFormat.getDelimiter());
-        assertTrue(cSVFormat.getIgnoreEmptyLines());
+        assertEquals(',', csvFormat.getDelimiter());
+        assertTrue(csvFormat.getIgnoreEmptyLines());
 
-        assertFalse(cSVFormat.getIgnoreHeaderCase());
-        assertNull(cSVFormat.getCommentMarker());
+        assertFalse(csvFormat.getIgnoreHeaderCase());
+        assertNull(csvFormat.getCommentMarker());
 
-        assertEquals("\r\n", cSVFormat.getRecordSeparator());
-        assertFalse(cSVFormat.getTrailingDelimiter());
+        assertEquals("\r\n", csvFormat.getRecordSeparator());
+        assertFalse(csvFormat.getTrailingDelimiter());
 
-        assertFalse(cSVFormat.getAllowMissingColumnNames());
-        assertFalse(cSVFormat.getTrim());
+        assertFalse(csvFormat.getAllowMissingColumnNames());
+        assertFalse(csvFormat.getTrim());
 
-        assertFalse(cSVFormat.isNullStringSet());
-        assertNull(cSVFormat.getNullString());
+        assertFalse(csvFormat.isNullStringSet());
+        assertNull(csvFormat.getNullString());
 
-        assertFalse(cSVFormat.getIgnoreSurroundingSpaces());
-        assertNull(cSVFormat.getEscapeCharacter());
+        assertFalse(csvFormat.getIgnoreSurroundingSpaces());
+        assertNull(csvFormat.getEscapeCharacter());
 
-        assertFalse(cSVFormatTwo.getIgnoreHeaderCase());
-        assertNull(cSVFormatTwo.getQuoteMode());
+        assertFalse(csvFormatTwo.getIgnoreHeaderCase());
+        assertNull(csvFormatTwo.getQuoteMode());
 
-        assertTrue(cSVFormatTwo.getIgnoreEmptyLines());
-        assertFalse(cSVFormatTwo.getIgnoreSurroundingSpaces());
+        assertTrue(csvFormatTwo.getIgnoreEmptyLines());
+        assertFalse(csvFormatTwo.getIgnoreSurroundingSpaces());
 
-        assertNull(cSVFormatTwo.getEscapeCharacter());
-        assertFalse(cSVFormatTwo.getTrim());
+        assertNull(csvFormatTwo.getEscapeCharacter());
+        assertFalse(csvFormatTwo.getTrim());
 
-        assertFalse(cSVFormatTwo.isEscapeCharacterSet());
-        assertTrue(cSVFormatTwo.isQuoteCharacterSet());
+        assertFalse(csvFormatTwo.isEscapeCharacterSet());
+        assertTrue(csvFormatTwo.isQuoteCharacterSet());
 
-        assertFalse(cSVFormatTwo.getSkipHeaderRecord());
-        assertEquals('\"', (char)cSVFormatTwo.getQuoteCharacter());
+        assertFalse(csvFormatTwo.getSkipHeaderRecord());
+        assertEquals('\"', (char)csvFormatTwo.getQuoteCharacter());
 
-        assertFalse(cSVFormatTwo.getAllowMissingColumnNames());
-        assertNull(cSVFormatTwo.getNullString());
+        assertFalse(csvFormatTwo.getAllowMissingColumnNames());
+        assertNull(csvFormatTwo.getNullString());
 
-        assertFalse(cSVFormatTwo.isNullStringSet());
-        assertFalse(cSVFormatTwo.getTrailingDelimiter());
+        assertFalse(csvFormatTwo.isNullStringSet());
+        assertFalse(csvFormatTwo.getTrailingDelimiter());
 
-        assertEquals("\r\n", cSVFormatTwo.getRecordSeparator());
-        assertEquals(',', cSVFormatTwo.getDelimiter());
+        assertEquals("\r\n", csvFormatTwo.getRecordSeparator());
+        assertEquals(',', csvFormatTwo.getDelimiter());
 
-        assertNull(cSVFormatTwo.getCommentMarker());
-        assertFalse(cSVFormatTwo.isCommentMarkerSet());
+        assertNull(csvFormatTwo.getCommentMarker());
+        assertFalse(csvFormatTwo.isCommentMarkerSet());
 
-        assertNotSame(cSVFormat, cSVFormatTwo);
-        assertNotSame(cSVFormatTwo, cSVFormat);
+        assertNotSame(csvFormat, csvFormatTwo);
+        assertNotSame(csvFormatTwo, csvFormat);
 
-        assertTrue(cSVFormatTwo.equals(cSVFormat));
+        assertFalse(csvFormatTwo.equals(csvFormat)); // CSV-244 - should not be equal
 
-        final String string = cSVFormatTwo.format(objectArray);
+        final String string = csvFormatTwo.format(objectArray);
 
-        assertEquals('\"', (char)cSVFormat.getQuoteCharacter());
-        assertFalse(cSVFormat.isCommentMarkerSet());
+        assertEquals('\"', (char)csvFormat.getQuoteCharacter());
+        assertFalse(csvFormat.isCommentMarkerSet());
 
-        assertFalse(cSVFormat.isEscapeCharacterSet());
-        assertTrue(cSVFormat.isQuoteCharacterSet());
+        assertFalse(csvFormat.isEscapeCharacterSet());
+        assertTrue(csvFormat.isQuoteCharacterSet());
 
-        assertFalse(cSVFormat.getSkipHeaderRecord());
-        assertNull(cSVFormat.getQuoteMode());
+        assertFalse(csvFormat.getSkipHeaderRecord());
+        assertNull(csvFormat.getQuoteMode());
 
-        assertEquals(',', cSVFormat.getDelimiter());
-        assertTrue(cSVFormat.getIgnoreEmptyLines());
+        assertEquals(',', csvFormat.getDelimiter());
+        assertTrue(csvFormat.getIgnoreEmptyLines());
 
-        assertFalse(cSVFormat.getIgnoreHeaderCase());
-        assertNull(cSVFormat.getCommentMarker());
+        assertFalse(csvFormat.getIgnoreHeaderCase());
+        assertNull(csvFormat.getCommentMarker());
 
-        assertEquals("\r\n", cSVFormat.getRecordSeparator());
-        assertFalse(cSVFormat.getTrailingDelimiter());
+        assertEquals("\r\n", csvFormat.getRecordSeparator());
+        assertFalse(csvFormat.getTrailingDelimiter());
 
-        assertFalse(cSVFormat.getAllowMissingColumnNames());
-        assertFalse(cSVFormat.getTrim());
+        assertFalse(csvFormat.getAllowMissingColumnNames());
+        assertFalse(csvFormat.getTrim());
 
-        assertFalse(cSVFormat.isNullStringSet());
-        assertNull(cSVFormat.getNullString());
+        assertFalse(csvFormat.isNullStringSet());
+        assertNull(csvFormat.getNullString());
 
-        assertFalse(cSVFormat.getIgnoreSurroundingSpaces());
-        assertNull(cSVFormat.getEscapeCharacter());
+        assertFalse(csvFormat.getIgnoreSurroundingSpaces());
+        assertNull(csvFormat.getEscapeCharacter());
 
-        assertFalse(cSVFormatTwo.getIgnoreHeaderCase());
-        assertNull(cSVFormatTwo.getQuoteMode());
+        assertFalse(csvFormatTwo.getIgnoreHeaderCase());
+        assertNull(csvFormatTwo.getQuoteMode());
 
-        assertTrue(cSVFormatTwo.getIgnoreEmptyLines());
-        assertFalse(cSVFormatTwo.getIgnoreSurroundingSpaces());
+        assertTrue(csvFormatTwo.getIgnoreEmptyLines());
+        assertFalse(csvFormatTwo.getIgnoreSurroundingSpaces());
 
-        assertNull(cSVFormatTwo.getEscapeCharacter());
-        assertFalse(cSVFormatTwo.getTrim());
+        assertNull(csvFormatTwo.getEscapeCharacter());
+        assertFalse(csvFormatTwo.getTrim());
 
-        assertFalse(cSVFormatTwo.isEscapeCharacterSet());
-        assertTrue(cSVFormatTwo.isQuoteCharacterSet());
+        assertFalse(csvFormatTwo.isEscapeCharacterSet());
+        assertTrue(csvFormatTwo.isQuoteCharacterSet());
 
-        assertFalse(cSVFormatTwo.getSkipHeaderRecord());
-        assertEquals('\"', (char)cSVFormatTwo.getQuoteCharacter());
+        assertFalse(csvFormatTwo.getSkipHeaderRecord());
+        assertEquals('\"', (char)csvFormatTwo.getQuoteCharacter());
 
-        assertFalse(cSVFormatTwo.getAllowMissingColumnNames());
-        assertNull(cSVFormatTwo.getNullString());
+        assertFalse(csvFormatTwo.getAllowMissingColumnNames());
+        assertNull(csvFormatTwo.getNullString());
 
-        assertFalse(cSVFormatTwo.isNullStringSet());
-        assertFalse(cSVFormatTwo.getTrailingDelimiter());
+        assertFalse(csvFormatTwo.isNullStringSet());
+        assertFalse(csvFormatTwo.getTrailingDelimiter());
 
-        assertEquals("\r\n", cSVFormatTwo.getRecordSeparator());
-        assertEquals(',', cSVFormatTwo.getDelimiter());
+        assertEquals("\r\n", csvFormatTwo.getRecordSeparator());
+        assertEquals(',', csvFormatTwo.getDelimiter());
 
-        assertNull(cSVFormatTwo.getCommentMarker());
-        assertFalse(cSVFormatTwo.isCommentMarkerSet());
+        assertNull(csvFormatTwo.getCommentMarker());
+        assertFalse(csvFormatTwo.isCommentMarkerSet());
 
-        assertNotSame(cSVFormat, cSVFormatTwo);
-        assertNotSame(cSVFormatTwo, cSVFormat);
+        assertNotSame(csvFormat, csvFormatTwo);
+        assertNotSame(csvFormatTwo, csvFormat);
 
         assertNotNull(string);
-        assertTrue(cSVFormat.equals(cSVFormatTwo));
+        assertFalse(csvFormat.equals(csvFormatTwo)); // CSV-244 - should not be equal
 
-        assertTrue(cSVFormatTwo.equals(cSVFormat));
+        assertFalse(csvFormatTwo.equals(csvFormat)); // CSV-244 - should not be equal
         assertEquals(",,,,,,,", string);
 
     }
 
+
     @Test
-    public void testWithHeaderEnum() throws Exception {
+    public void testWithHeaderEnum() {
         final CSVFormat formatWithHeader = CSVFormat.DEFAULT.withHeader(Header.class);
         assertArrayEquals(new String[]{ "Name", "Email", "Phone" }, formatWithHeader.getHeader());
     }
 
 
     @Test
-    public void testWithIgnoreEmptyLines() throws Exception {
+    public void testWithIgnoreEmptyLines() {
         assertFalse(CSVFormat.DEFAULT.withIgnoreEmptyLines(false).getIgnoreEmptyLines());
         assertTrue(CSVFormat.DEFAULT.withIgnoreEmptyLines().getIgnoreEmptyLines());
     }
 
 
     @Test
-    public void testWithIgnoreSurround() throws Exception {
+    public void testWithIgnoreSurround() {
         assertFalse(CSVFormat.DEFAULT.withIgnoreSurroundingSpaces(false).getIgnoreSurroundingSpaces());
         assertTrue(CSVFormat.DEFAULT.withIgnoreSurroundingSpaces().getIgnoreSurroundingSpaces());
     }
 
 
     @Test
-    public void testWithNullString() throws Exception {
+    public void testWithNullString() {
         final CSVFormat formatWithNullString = CSVFormat.DEFAULT.withNullString("null");
         assertEquals("null", formatWithNullString.getNullString());
     }
 
 
     @Test
-    public void testWithQuoteChar() throws Exception {
+    public void testWithQuoteChar() {
         final CSVFormat formatWithQuoteChar = CSVFormat.DEFAULT.withQuote('"');
         assertEquals(Character.valueOf('"'), formatWithQuoteChar.getQuoteCharacter());
     }
 
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWithQuoteLFThrowsException() {
-        CSVFormat.DEFAULT.withQuote(LF);
+        assertThrows(IllegalArgumentException.class, () -> CSVFormat.DEFAULT.withQuote(LF));
     }
 
-
     @Test
-    public void testWithQuotePolicy() throws Exception {
+    public void testWithQuotePolicy() {
         final CSVFormat formatWithQuotePolicy = CSVFormat.DEFAULT.withQuoteMode(QuoteMode.ALL);
         assertEquals(QuoteMode.ALL, formatWithQuotePolicy.getQuoteMode());
     }
 
-
     @Test
-    public void testWithRecordSeparatorCR() throws Exception {
+    public void testWithRecordSeparatorCR() {
         final CSVFormat formatWithRecordSeparator = CSVFormat.DEFAULT.withRecordSeparator(CR);
         assertEquals(String.valueOf(CR), formatWithRecordSeparator.getRecordSeparator());
     }
 
     @Test
-    public void testWithRecordSeparatorCRLF() throws Exception {
+    public void testWithRecordSeparatorCRLF() {
         final CSVFormat formatWithRecordSeparator = CSVFormat.DEFAULT.withRecordSeparator(CRLF);
         assertEquals(CRLF, formatWithRecordSeparator.getRecordSeparator());
     }
 
     @Test
-    public void testWithRecordSeparatorLF() throws Exception {
+    public void testWithRecordSeparatorLF() {
         final CSVFormat formatWithRecordSeparator = CSVFormat.DEFAULT.withRecordSeparator(LF);
         assertEquals(String.valueOf(LF), formatWithRecordSeparator.getRecordSeparator());
     }
 
     @Test
-    public void testWithSystemRecordSeparator() throws Exception {
+    public void testWithSystemRecordSeparator() {
         final CSVFormat formatWithRecordSeparator = CSVFormat.DEFAULT.withSystemRecordSeparator();
         assertEquals(System.getProperty("line.separator"), formatWithRecordSeparator.getRecordSeparator());
     }

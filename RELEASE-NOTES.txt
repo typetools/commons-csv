@@ -1,4 +1,67 @@
                         Apache Commons CSV
+                        Version 1.8
+                        Release Notes
+
+
+INTRODUCTION:
+
+This document contains the release notes for the 1.8-SNAPSHOT version of Apache Commons CSV.
+Commons CSV reads and writes files in variations of the Comma Separated Value (CSV) format.
+
+Commons CSV requires at least Java 6.
+
+The Apache Commons CSV library provides a simple interface for reading and writing CSV files of various types.
+
+Feature and bug fix release (Java 8).
+This release fixes serialization compatibility of CSVRecord with versions 1.0 to 1.6. New fields added since 
+1.7 are not serialized. Support for Serializable is scheduled to be removed in version 2.0.
+
+Changes in this version include:
+
+NEW FEATURES
+==============
+
+o CSV-255:  Add CSVRecord.isSet(int) method #52. Thanks to 0x100.
+
+FIXED BUGS
+============
+
+o CSV-135:  Char escape doesn't work properly with quoting. Thanks to Mateusz Zakarczemny.
+o CSV-244:  Test case failures following CSVFormat#equals() update.
+o CSV-243:  CSVFormat withTrim() and withIgnoreSurroundingSpaces() need better docs.
+o CSV-242:  CSVFormat equals() and hashCode() don't use all fields.
+o CSV-241:  CSVFormat#validate() does not account for allowDuplicateHeaderNames #43. Thanks to LuckyIlam, Gary Gregory.
+o CSV-245:  Post 1.7 release fixes. Thanks to Alex Herbert.
+o CSV-252:  Upgrade test framework to JUnit 5 Jupiter #49, #50. Thanks to Alex Herbert.
+o CSV-247:  A single empty header is allowed when not allowing empty column headers. #47. Thanks to Alex Herbert, Gary Gregory.
+o CSV-248:  CSVRecord is not Serializable. Thanks to Alex Herbert.
+o           Use test scope for supercsv #48. Thanks to Alex Herbert.
+
+CHANGES
+=========
+
+o           Update tests from H2 1.4.199 to 1.4.200. Thanks to Gary Gregory.
+o           Update tests from Hamcrest 2.1 to 2.2. Thanks to Gary Gregory.
+o           Update tests from Mockito 3.1.0 to 3.2.4. Thanks to Gary Gregory.
+o           Fix typos in site and test #53. Thanks to Chen.
+o           Fix typo performance test #55. Thanks to Chen.
+
+
+Historical list of changes: https://commons.apache.org/proper/commons-csv/changes-report.html
+
+For complete information on Apache Commons CSV, including instructions on how to submit bug reports,
+patches, or suggestions for improvement, see the Apache Apache Commons CSV website:
+
+https://commons.apache.org/proper/commons-csv/
+
+Download page: https://commons.apache.org/proper/commons-csv/download_csv.cgi
+
+Have fun!
+-Apache Commons CSV team
+
+------------------------------------------------------------------------------
+
+                        Apache Commons CSV
                         Version 1.7
                         Release Notes
 
@@ -36,20 +99,19 @@ o CSV-237:  Update to Java 8. Thanks to Gary Gregory.
 o           Update tests from H2 1.4.198 to 1.4.199. Thanks to Gary Gregory.
 
 
-Historical list of changes: http://commons.apache.org/proper/commons-csv/changes-report.html
+Historical list of changes: https://commons.apache.org/proper/commons-csv/changes-report.html
 
 For complete information on Apache Commons CSV, including instructions on how to submit bug reports,
 patches, or suggestions for improvement, see the Apache Apache Commons CSV website:
 
-http://commons.apache.org/proper/commons-csv/
+https://commons.apache.org/proper/commons-csv/
 
-Download it from http://commons.apache.org/proper/commons-csv/download_csv.cgi
+Download it from https://commons.apache.org/proper/commons-csv/download_csv.cgi
 
 Have fun!
 -Apache Commons CSV team
 
 ------------------------------------------------------------------------------
-
 
                         Apache Commons CSV
                         Version 1.6
@@ -150,12 +212,12 @@ o CSV-187: Update platform requirement from Java 6 to 7. Thanks to Gary Gregory.
 o CSV-201: Do not use RuntimeException in CSVParser.iterator().new Iterator() {...}.getNextRecord(). Thanks to Benedikt Ritter, Gary Gregory.
 
 
-Historical list of changes: http://commons.apache.org/proper/commons-csv/changes-report.html
+Historical list of changes: https://commons.apache.org/proper/commons-csv/changes-report.html
 
 For complete information on Apache Commons CSV, including instructions on how to submit bug reports,
 patches, or suggestions for improvement, see the Apache Apache Commons CSV website:
 
-http://commons.apache.org/proper/commons-csv/
+https://commons.apache.org/proper/commons-csv/
 
 Have fun!
 -Apache Commons CSV team
@@ -194,12 +256,12 @@ o CSV-181:  Make CSVPrinter.print(Object) GC-free. Thanks to Gary Gregory.
 o CSV-183:  Drop ferc.gov tests.  
 
 
-Historical list of changes: http://commons.apache.org/proper/commons-csv/changes-report.html
+Historical list of changes: https://commons.apache.org/proper/commons-csv/changes-report.html
 
 For complete information on Apache Commons CSV, including instructions on how to submit bug reports,
 patches, or suggestions for improvement, see the Apache Apache Commons CSV website:
 
-http://commons.apache.org/proper/commons-csv/
+https://commons.apache.org/proper/commons-csv/
 
 Have fun!
 -Apache Commons CSV team
@@ -286,12 +348,12 @@ o CSV-145:  CSVFormat.with* methods clear the header comments. Thanks to Frank U
 o CSV-156:  Incorrect Javadoc on QuoteMode.NONE. Thanks to Jason Steenstra-Pickens.
 
 
-Historical list of changes: http://commons.apache.org/proper/commons-csv/changes-report.html
+Historical list of changes: https://commons.apache.org/proper/commons-csv/changes-report.html
 
 For complete information on Apache Commons CSV, including instructions on how to submit bug reports,
 patches, or suggestions for improvement, see the Apache Apache Commons CSV website:
 
-http://commons.apache.org/proper/commons-csv/
+https://commons.apache.org/proper/commons-csv/
 
 Have fun!
 -Apache Commons CSV team
@@ -332,12 +394,12 @@ Changes:
 o [CSV-124] Improve toString() implementation of CSVRecord. Thanks to Kalyan. 
 o [CSV-134] Unified parameter validation. Thanks to wu wen. 
 
-Historical list of changes: http://commons.apache.org/proper/commons-csv/changes-report.html
+Historical list of changes: https://commons.apache.org/proper/commons-csv/changes-report.html
 
 For complete information on Apache Commons CSV, including instructions on how to submit bug reports,
 patches, or suggestions for improvement, see the Apache Apache Commons CSV website:
 
-http://commons.apache.org/proper/commons-csv/
+https://commons.apache.org/proper/commons-csv/
 
 Have fun!
 -Apache Commons CSV team
@@ -427,12 +489,12 @@ o CSV-26:   ExtendedBufferedReader does too much
 o CSV-27:   Decide whether to keep the csv.writer subpackage
 
 
-Historical list of changes: http://commons.apache.org/proper/commons-csv/changes-report.html
+Historical list of changes: https://commons.apache.org/proper/commons-csv/changes-report.html
 
 For complete information on Apache Commons CSV, including instructions on how to submit bug reports,
 patches, or suggestions for improvement, see the Apache Apache Commons CSV website:
 
-http://commons.apache.org/proper/commons-csv/
+https://commons.apache.org/proper/commons-csv/
 
 Have fun!
 -Apache Commons CSV team

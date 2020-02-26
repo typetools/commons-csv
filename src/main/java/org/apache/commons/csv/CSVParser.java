@@ -506,19 +506,18 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
             if (headerRecord != null) {
                 for (int i = 0; i < headerRecord.length; i++) {
                     final String header = headerRecord[i];
-                    final boolean containsHeader = header == null ? false : hdrMap.containsKey(header);
                     final boolean emptyHeader = header == null || header.trim().isEmpty();
-                    if (containsHeader) {
-                        if (!emptyHeader && !this.format.getAllowDuplicateHeaderNames()) {
-                            throw new IllegalArgumentException(
-                                String.format(
-                                    "The header contains a duplicate name: \"%s\" in %s. If this is valid then use CSVFormat.withAllowDuplicateHeaderNames().",
-                                    header, Arrays.toString(headerRecord)));
-                        }
-                        if (emptyHeader && !this.format.getAllowMissingColumnNames()) {
-                            throw new IllegalArgumentException(
-                                    "A header name is missing in " + Arrays.toString(headerRecord));
-                        }
+                    if (emptyHeader && !this.format.getAllowMissingColumnNames()) {
+                        throw new IllegalArgumentException(
+                            "A header name is missing in " + Arrays.toString(headerRecord));
+                    }
+                    // Note: This will always allow a duplicate header if the header is empty
+                    final boolean containsHeader = header != null && hdrMap.containsKey(header);
+                    if (containsHeader && !emptyHeader && !this.format.getAllowDuplicateHeaderNames()) {
+                        throw new IllegalArgumentException(
+                            String.format(
+                                "The header contains a duplicate name: \"%s\" in %s. If this is valid then use CSVFormat.withAllowDuplicateHeaderNames().",
+                                header, Arrays.toString(headerRecord)));
                     }
                     if (header != null) {
                         hdrMap.put(header, Integer.valueOf(i));
@@ -531,9 +530,9 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
             }
         }
         if (headerNames == null) {
-        	headerNames = Collections.emptyList(); //immutable
+            headerNames = Collections.emptyList(); //immutable
         } else {
-        	headerNames = Collections.unmodifiableList(headerNames);
+            headerNames = Collections.unmodifiableList(headerNames);
         }
         return new Headers(hdrMap, headerNames);
     }
@@ -568,6 +567,11 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * <p>
      * The map keys are column names. The map values are 0-based indices.
      * </p>
+     * <p>
+     * Note: The map can only provide a one-to-one mapping when the format did not
+     * contain null or duplicate column names.
+     * </p>
+     *
      * @return a copy of the header map.
      */
     public @Nullable Map<String, Integer> getHeaderMap() {
@@ -591,8 +595,14 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
 
     /**
      * Returns a read-only list of header names that iterates in column order.
+     * <p>
+     * Note: The list provides strings that can be used as keys in the header map.
+     * The list will not contain null column names if they were present in the input
+     * format.
+     * </p>
      *
      * @return read-only list of header names that iterates in column order.
+     * @see #getHeaderMap()
      * @since 1.7
      */
     public List<String> getHeaderNames() {

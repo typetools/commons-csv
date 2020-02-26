@@ -21,7 +21,7 @@ Commit and push changes, wait for CI jobs to pass.
 At https://github.com/apache/commons-csv/releases ,
 find the commit corresponding to a public release.
 
-Commons CSV version 1.7 is commit a227a1e2fb61ff5f192cfd8099e7e6f4848d7d43
+Commons CSV version 1.8 is commit 660f7c9f853092ec8abf5d6c81d260e3c80c2194
 
 Update the PACKAGE environment variable below.
 
@@ -43,7 +43,7 @@ This must be done on a CSE machine, which has access to the necessary passwords.
 #  * in file pom.xml (if different from upstream)
 #  * environment variable PACKAGE below
 
-PACKAGE=commons-csv-1.7 && \
+PACKAGE=commons-csv-1.8 && \
 mvn -B -Dmaven.test.skip=true package && \
 mvn source:jar && \
 mvn javadoc:javadoc && (cd target/site/apidocs && jar -cf ${PACKAGE}-javadoc.jar org)

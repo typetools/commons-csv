@@ -240,51 +240,31 @@ public class PerformanceTest {
         show();
     }
 
+    @FunctionalInterface
     private static interface CSVParserFactory {
         public CSVParser createParser() throws IOException;
     }
 
     private static void testParseCommonsCSV() throws Exception {
-        testParser("CSV", new CSVParserFactory() {
-            @Override
-            public CSVParser createParser() throws IOException {
-                return new CSVParser(createReader(), format);
-            }
-        });
+        testParser("CSV", () -> new CSVParser(createReader(), format));
     }
 
     private static void testParsePath() throws Exception {
-        testParser("CSV-PATH", new CSVParserFactory() {
-            @Override
-            public CSVParser createParser() throws IOException {
-                return CSVParser.parse(Files.newInputStream(Paths.get(BIG_FILE.toURI())), StandardCharsets.ISO_8859_1, format);
-            }
-        });
+        testParser("CSV-PATH", () -> CSVParser.parse(Files.newInputStream(Paths.get(BIG_FILE.toURI())), StandardCharsets.ISO_8859_1, format));
     }
 
     private static void testParsePathDoubleBuffering() throws Exception {
-        testParser("CSV-PATH-DB", new CSVParserFactory() {
-            @Override
-            public CSVParser createParser() throws IOException {
-                return CSVParser.parse(Files.newBufferedReader(Paths.get(BIG_FILE.toURI()), StandardCharsets.ISO_8859_1), format);
-            }
-        });
+        testParser("CSV-PATH-DB", () -> CSVParser.parse(Files.newBufferedReader(Paths.get(BIG_FILE.toURI()), StandardCharsets.ISO_8859_1), format));
     }
 
     private static void testParseURL() throws Exception {
-        testParser("CSV-URL", new CSVParserFactory() {
-            @Override
-            public CSVParser createParser() throws IOException {
-                //NOTE: URL will always return a BufferedInputStream.
-                return CSVParser.parse(BIG_FILE.toURI().toURL(), StandardCharsets.ISO_8859_1, format);
-            }
-        });
+        testParser("CSV-URL", () -> CSVParser.parse(BIG_FILE.toURI().toURL(), StandardCharsets.ISO_8859_1, format));
     }
 
     private static Constructor<Lexer> getLexerCtor(final String clazz) throws Exception {
         @SuppressWarnings("unchecked")
         final Class<Lexer> lexer = (Class<Lexer>) Class.forName("org.apache.commons.csv." + clazz);
-        return lexer.getConstructor(new Class<?>[]{CSVFormat.class, ExtendedBufferedReader.class});
+        return lexer.getConstructor(CSVFormat.class, ExtendedBufferedReader.class);
     }
 
     private static void testCSVLexer(final boolean newToken, final String test) throws Exception {
@@ -337,8 +317,7 @@ public class PerformanceTest {
 
     private static Lexer createTestCSVLexer(final String test, final ExtendedBufferedReader input)
             throws InstantiationException, IllegalAccessException, InvocationTargetException, Exception {
-        return test.startsWith("CSVLexer") ? getLexerCtor(test)
-                .newInstance(new Object[] { format, input }) : new Lexer(format, input);
+        return test.startsWith("CSVLexer") ? getLexerCtor(test).newInstance(format, input) : new Lexer(format, input);
     }
 
     private static Stats iterate(final Iterable<CSVRecord> it) {

@@ -17,20 +17,22 @@
 
 package org.apache.commons.csv;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.junit.jupiter.api.Test;
 
 /**
  */
 public class AssertionsTest {
 
     @Test
-    public void testNotNull() throws Exception {
+    public void testNotNull() {
         Assertions.notNull(new Object(), "object");
     }
 
     @SuppressWarnings("argument.type.incompatible")  // test code, is supposed to NPE
-    @Test(expected = IllegalArgumentException.class)
-    public void testNotNullNull() throws Exception {
-        Assertions.notNull(null, "object");
+    @Test
+    public void testNotNullNull() {
+        assertThrows(IllegalArgumentException.class, () -> Assertions.notNull(null, "object"));
     }
 }
