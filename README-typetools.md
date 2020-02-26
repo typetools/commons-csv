@@ -15,19 +15,22 @@ This creates file
 To update to a newer version of the upstream library
 ----------------------------------------------------
 
+Use the latest Checker Framework version by changing `pom.xml`.
+Commit and push changes, wait for CI jobs to pass.
+
 At https://github.com/apache/commons-csv/releases ,
 find the commit corresponding to a public release.
 
 Commons CSV version 1.7 is commit a227a1e2fb61ff5f192cfd8099e7e6f4848d7d43
 
-Pull in that commit:
+Update the PACKAGE environment variable below.
+
+Pull in the commit:
 ```
 git pull https://github.com/apache/commons-csv <commitid>
 ```
 
-Update the PACKAGE environment variable below.
-
-Use the latest Checker Framework version by changing `pom.xml`.
+Ensure that the package builds (including type-checking).
 
 
 To upload to Maven Central
