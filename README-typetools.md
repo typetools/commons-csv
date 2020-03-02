@@ -23,7 +23,7 @@ find the commit corresponding to a public release.
 
 Commons CSV version 1.8 is commit 660f7c9f853092ec8abf5d6c81d260e3c80c2194
 
-Update the PACKAGE environment variable below.
+Update the PACKAGE environment variable below and file cfMavenCentral.xml .
 
 Pull in the commit:
 ```
@@ -42,6 +42,8 @@ This must be done on a CSE machine, which has access to the necessary passwords.
 #  * in file cfMavenCentral.xml
 #  * in file pom.xml (if different from upstream)
 #  * environment variable PACKAGE below
+
+# Ensure you are using JDK 8.
 
 PACKAGE=commons-csv-1.8 && \
 mvn -B -Dmaven.test.skip=true package && \
