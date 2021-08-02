@@ -28,9 +28,6 @@ import java.util.List;
  */
 final class Utils {
 
-    private Utils() {
-    }
-
     /**
      * Checks if the 2d array has the same contents as the list of records.
      *
@@ -40,9 +37,13 @@ final class Utils {
      */
     @SuppressWarnings("nullness")  // JUnit 4 is not yet annotated
     public static void compare(final String message, final String[][] expected, final List<CSVRecord> actual) {
-        assertEquals(expected.length, actual.size(), message + "  - outer array size");
-        for (int i = 0; i < expected.length; i++) {
+        final int expectedLength = expected.length;
+        assertEquals(expectedLength, actual.size(), message + "  - outer array size");
+        for (int i = 0; i < expectedLength; i++) {
             assertArrayEquals(expected[i], actual.get(i).values(), message + " (entry " + i + ")");
         }
+    }
+
+    private Utils() {
     }
 }

@@ -15,13 +15,14 @@
 
 language: java
 
-jdk:
-#  - oraclejdk11
-  - openjdk8
-#  - openjdk11
-#  - openjdk12
-#  - openjdk13
-#  - openjdk-ea
+matrix:
+  include:
+    - jdk: openjdk8
+    - jdk: openjdk11
+    - jdk: openjdk16
+    - jdk: openjdk-ea
+  allow_failures:
+    - jdk: openjdk-ea
 
 install: true
 
@@ -29,5 +30,4 @@ script:
   - mvn -B -Dmaven.test.skip=true package
 
 after_success:
-  - mvn -B -V clean test jacoco:report coveralls:report -Ptravis-jacoco
-  
+  - mvn -B -V clean test jacoco:report coveralls:report -Ptravis-jacoco --no-transfer-progress

@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 
@@ -32,11 +31,16 @@ import org.junit.jupiter.api.Test;
 
 public class JiraCsv167Test {
 
+    private Reader getTestReader() {
+        return new InputStreamReader(
+            ClassLoader.getSystemClassLoader().getResourceAsStream("org/apache/commons/csv/csv-167/sample1.csv"));
+    }
+
     @Test
     public void parse() throws IOException {
         int totcomment = 0;
         int totrecs = 0;
-        try (final BufferedReader br = new BufferedReader(getTestInput())) {
+        try (final Reader reader = getTestReader(); final BufferedReader br = new BufferedReader(reader)) {
             String s = null;
             boolean lastWasComment = false;
             while ((s = br.readLine()) != null) {
@@ -51,25 +55,26 @@ public class JiraCsv167Test {
                 }
             }
         }
-        CSVFormat format = CSVFormat.DEFAULT;
-        //
-        format = format.withAllowMissingColumnNames(false);
-        format = format.withCommentMarker('#');
-        format = format.withDelimiter(',');
-        format = format.withEscape('\\');
-        format = format.withHeader("author", "title", "publishDate");
-        format = format.withHeaderComments("headerComment");
-        format = format.withNullString("NULL");
-        format = format.withIgnoreEmptyLines(true);
-        format = format.withIgnoreSurroundingSpaces(true);
-        format = format.withQuote('"');
-        format = format.withQuoteMode(QuoteMode.ALL);
-        format = format.withRecordSeparator('\n');
-        format = format.withSkipHeaderRecord(false);
-        //
+        final CSVFormat format = CSVFormat.DEFAULT.builder()
+        // @formatter:off
+            .setAllowMissingColumnNames(false)
+            .setCommentMarker('#')
+            .setDelimiter(',')
+            .setEscape('\\')
+            .setHeader("author", "title", "publishDate")
+            .setHeaderComments("headerComment")
+            .setNullString("NULL")
+            .setIgnoreEmptyLines(true)
+            .setIgnoreSurroundingSpaces(true)
+            .setQuote('"')
+            .setQuoteMode(QuoteMode.ALL)
+            .setRecordSeparator('\n')
+            .setSkipHeaderRecord(false)
+            .build();
+        // @formatter:on
         int comments = 0;
         int records = 0;
-        try (final CSVParser parser = format.parse(getTestInput())) {
+        try (final Reader reader = getTestReader(); final CSVParser parser = format.parse(reader)) {
             for (final CSVRecord csvRecord : parser) {
                 records++;
                 if (csvRecord.hasComment()) {
@@ -80,10 +85,5 @@ public class JiraCsv167Test {
         // Comment lines are concatenated, in this example 4 lines become 2 comments.
         assertEquals(totcomment, comments);
         assertEquals(totrecs, records); // records includes the header
-    }
-
-    private Reader getTestInput() {
-        final InputStream is = ClassLoader.getSystemClassLoader().getResourceAsStream("csv-167/sample1.csv");
-        return new InputStreamReader(is);
     }
 }

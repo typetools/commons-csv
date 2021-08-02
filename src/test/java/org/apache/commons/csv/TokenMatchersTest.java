@@ -20,6 +20,7 @@ import static org.apache.commons.csv.TokenMatchers.hasContent;
 import static org.apache.commons.csv.TokenMatchers.hasType;
 import static org.apache.commons.csv.TokenMatchers.isReady;
 import static org.apache.commons.csv.TokenMatchers.matches;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,17 +40,17 @@ public class TokenMatchersTest {
     }
 
     @Test
+    public void testHasContent() {
+        assertFalse(hasContent("This is not the token's content").matches(token));
+        assertTrue(hasContent("content").matches(token));
+    }
+
+    @Test
     public void testHasType() {
         assertFalse(hasType(Token.Type.COMMENT).matches(token));
         assertFalse(hasType(Token.Type.EOF).matches(token));
         assertFalse(hasType(Token.Type.EORECORD).matches(token));
         assertTrue(hasType(Token.Type.TOKEN).matches(token));
-    }
-
-    @Test
-    public void testHasContent() {
-        assertFalse(hasContent("This is not the token's content").matches(token));
-        assertTrue(hasContent("content").matches(token));
     }
 
     @Test
@@ -67,4 +68,10 @@ public class TokenMatchersTest {
         assertFalse(matches(Token.Type.EORECORD, "not the content").matches(token));
     }
 
+    @Test
+    public void testToString() {
+        assertTrue(matches(Token.Type.TOKEN, "content").matches(token));
+        assertEquals("TOKEN", token.type.name());
+        assertEquals("TOKEN [content]", token.toString());
+    }
 }

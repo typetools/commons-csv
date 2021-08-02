@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -30,17 +31,24 @@ import org.junit.jupiter.api.Test;
 
 public class JiraCsv198Test {
 
-    private static final CSVFormat CSV_FORMAT = CSVFormat.EXCEL.withDelimiter('^').withFirstRecordAsHeader();
+    // @formatter:off
+    private static final CSVFormat CSV_FORMAT = CSVFormat.EXCEL.builder()
+        .setDelimiter('^')
+        .setHeader()
+        .setSkipHeaderRecord(true)
+        .build();
+    // @formatter:on
 
     @Test
     public void test() throws UnsupportedEncodingException, IOException {
-        final InputStream pointsOfReference = getClass().getResourceAsStream("/CSV-198/optd_por_public.csv");
+        final InputStream pointsOfReference = getClass()
+            .getResourceAsStream("/org/apache/commons/csv/CSV-198/optd_por_public.csv");
         if (pointsOfReference == null) {
-            throw new Error("Didn't find resource /CSV-198/optd_por_public.csv");
+            throw new Error("Didn't find resource /org/apache/commons/csv/CSV-198/optd_por_public.csv");
         }
         assertNotNull(pointsOfReference);
         try (@SuppressWarnings("resource")
-        CSVParser parser = CSV_FORMAT.parse(new InputStreamReader(pointsOfReference, "UTF-8"))) {
+        CSVParser parser = CSV_FORMAT.parse(new InputStreamReader(pointsOfReference, StandardCharsets.UTF_8))) {
             for (final CSVRecord record : parser) {
                 final String locationType = record.get("location_type");
                 assertNotNull(locationType);

@@ -27,10 +27,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
@@ -42,7 +42,12 @@ import org.junit.jupiter.params.provider.MethodSource;
  */
 public class CSVFileParserTest {
 
-    private static final File BASE = new File("src/test/resources/CSVFileParser");
+    private static final File BASE_DIR = new File("src/test/resources/org/apache/commons/csv/CSVFileParser");
+
+    public static Stream<File> generateData() {
+        final File[] files = BASE_DIR.listFiles((dir, name) -> name.startsWith("test") && name.endsWith(".txt"));
+        return files != null ? Stream.of(files) : Stream.empty();
+    }
 
     private @Nullable String readTestData(final BufferedReader reader) throws IOException {
         String line;
@@ -50,15 +55,6 @@ public class CSVFileParserTest {
             line = reader.readLine();
         } while (line != null && line.startsWith("#"));
         return line;
-    }
-
-    public static Stream<File> generateData() {
-        final FilenameFilter fileNameFilter = (dir, name) -> name.startsWith("test") && name.endsWith(".txt");
-        final File[] files = BASE.listFiles(fileNameFilter);
-        if (files != null) {
-            return Arrays.stream(files);
-        }
-        return Stream.empty();
     }
 
     @ParameterizedTest
@@ -92,14 +88,12 @@ public class CSVFileParserTest {
 
             // Now parse the file and compare against the expected results
             // We use a buffered reader internally so no need to create one here.
-            try (final CSVParser parser = CSVParser.parse(new File(BASE, split[0]), Charset.defaultCharset(), format)) {
+            try (final CSVParser parser = CSVParser.parse(new File(BASE_DIR, split[0]), Charset.defaultCharset(), format)) {
                 for (final CSVRecord record : parser) {
                     String parsed = Arrays.toString(record.values());
-                    if (checkComments) {
-                        final String comment = record.getComment().replace("\n", "\\n");
-                        if (comment != null) {
-                            parsed += "#" + comment;
-                        }
+                    final String comment = record.getComment();
+                    if (checkComments && comment != null) {
+                        parsed += "#" + comment.replace("\n", "\\n");
                     }
                     final int count = record.size();
                     assertEquals(readTestData(testData), count + ":" + parsed, testFile.getName());
@@ -138,18 +132,16 @@ public class CSVFileParserTest {
             assertEquals(line, format.toString(), testFile.getName() + " Expected format ");
 
             // Now parse the file and compare against the expected results
-            final URL resource = ClassLoader.getSystemResource("CSVFileParser/" + split[0]);
+            final URL resource = ClassLoader.getSystemResource("org/apache/commons/csv/CSVFileParser/" + split[0]);
             if (resource == null) {
                 throw new Error("Didn't find resource CSVFileParser/" + split[0]);
             }
-            try (final CSVParser parser = CSVParser.parse(resource, Charset.forName("UTF-8"), format)) {
+            try (final CSVParser parser = CSVParser.parse(resource, StandardCharsets.UTF_8, format)) {
                 for (final CSVRecord record : parser) {
                     String parsed = Arrays.toString(record.values());
-                    if (checkComments) {
-                        final String comment = record.getComment().replace("\n", "\\n");
-                        if (comment != null) {
-                            parsed += "#" + comment;
-                        }
+                    final String comment = record.getComment();
+                    if (checkComments && comment != null) {
+                        parsed += "#" + comment.replace("\n", "\\n");
                     }
                     final int count = record.size();
                     assertEquals(readTestData(testData), count + ":" + parsed, testFile.getName());

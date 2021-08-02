@@ -36,10 +36,9 @@ public class JiraCsv247Test {
 
     @Test
     public void testHeadersMissingOneColumnWhenAllowingMissingColumnNames() throws Exception {
-        final CSVFormat format = CSVFormat.DEFAULT.withHeader().withAllowMissingColumnNames(true);
+        final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().setAllowMissingColumnNames(true).build();
 
-        assertTrue(format.getAllowMissingColumnNames(),
-            "We should allow missing column names");
+        assertTrue(format.getAllowMissingColumnNames(), "We should allow missing column names");
 
         final Reader in = new StringReader("a,,c,d,e\n1,2,3,4,5\nv,w,x,y,z");
         try (final CSVParser parser = format.parse(in)) {
@@ -62,20 +61,23 @@ public class JiraCsv247Test {
     }
 
     @Test
-    public void testHeadersMissingThrowsWhenNotAllowingMissingColumnNames() throws Exception {
-        final CSVFormat format = CSVFormat.DEFAULT.withHeader();
+    public void testHeadersMissingThrowsWhenNotAllowingMissingColumnNames() {
+        final CSVFormat format = CSVFormat.DEFAULT.builder().setHeader().build();
 
-        assertFalse(format.getAllowMissingColumnNames(),
-            "By default we should not allow missing column names");
+        assertFalse(format.getAllowMissingColumnNames(), "By default we should not allow missing column names");
 
         assertThrows(IllegalArgumentException.class, () -> {
-            final Reader in = new StringReader("a,,c,d,e\n1,2,3,4,5\nv,w,x,y,z");
-            format.parse(in);
+            try (final Reader reader = new StringReader("a,,c,d,e\n1,2,3,4,5\nv,w,x,y,z");
+                CSVParser parser = format.parse(reader);) {
+                // should fail
+            }
         }, "1 missing column header is not allowed");
 
         assertThrows(IllegalArgumentException.class, () -> {
-            final Reader in = new StringReader("a,,c,d,\n1,2,3,4,5\nv,w,x,y,z");
-            format.parse(in);
+            try (final Reader reader = new StringReader("a,,c,d,\n1,2,3,4,5\nv,w,x,y,z");
+                CSVParser parser = format.parse(reader);) {
+                // should fail
+            }
         }, "2+ missing column headers is not allowed!");
     }
 }

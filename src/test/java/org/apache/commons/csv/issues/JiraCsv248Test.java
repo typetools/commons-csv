@@ -22,19 +22,24 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.apache.commons.csv.CSVRecord;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 
+import org.apache.commons.csv.CSVRecord;
+import org.junit.jupiter.api.Test;
+
 public class JiraCsv248Test {
+    private static InputStream getTestInput() {
+        return ClassLoader.getSystemClassLoader().getResourceAsStream("org/apache/commons/csv/CSV-248/csvRecord.bin");
+    }
+
     /**
      * Test deserialisation of a CSVRecord created using version 1.6.
      *
-     * <p>This test asserts that serialization from 1.8 onwards is consistent with
-     * previous versions. Serialization was broken in version 1.7.
+     * <p>
+     * This test asserts that serialization from 1.8 onwards is consistent with previous versions. Serialization was
+     * broken in version 1.7.
      *
      * @throws IOException Signals that an I/O exception has occurred.
      * @throws ClassNotFoundException If the CSVRecord cannot be deserialized
@@ -42,11 +47,11 @@ public class JiraCsv248Test {
     @Test
     public void testJiraCsv248() throws IOException, ClassNotFoundException {
         // Record was originally created using CSV version 1.6 with the following code:
-        //try (final CSVParser parser = CSVParser.parse("A,B\n#my comment\nOne,Two", CSVFormat.DEFAULT.withHeader().withCommentMarker('#'))) {
-        //    CSVRecord rec = parser.iterator().next();
-        //}
-        try (InputStream in = getTestInput();
-            ObjectInputStream ois = new ObjectInputStream(in)) {
+        // try (final CSVParser parser = CSVParser.parse("A,B\n#my comment\nOne,Two",
+        // CSVFormat.DEFAULT.builder().setHeader().setCommentMarker('#'))) {
+        // CSVRecord rec = parser.iterator().next();
+        // }
+        try (InputStream in = getTestInput(); final ObjectInputStream ois = new ObjectInputStream(in)) {
             final Object object = ois.readObject();
             assertTrue(object instanceof CSVRecord);
             final CSVRecord rec = (CSVRecord) object;
@@ -72,9 +77,5 @@ public class JiraCsv248Test {
                 // OK
             }
         }
-    }
-
-    private static InputStream getTestInput() {
-        return ClassLoader.getSystemClassLoader().getResourceAsStream("CSV-248/csvRecord.bin");
     }
 }

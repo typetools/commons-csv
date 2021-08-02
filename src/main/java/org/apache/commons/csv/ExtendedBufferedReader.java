@@ -54,15 +54,31 @@ final class ExtendedBufferedReader extends BufferedReader {
         super(reader);
     }
 
+    /**
+     * Closes the stream.
+     *
+     * @throws IOException
+     *             If an I/O error occurs
+     */
     @Override
-    public int read() throws IOException {
-        final int current = super.read();
-        if (current == CR || current == LF && lastChar != CR) {
-            eolCounter++;
+    public void close() throws IOException {
+        // Set ivars before calling super close() in case close() throws an IOException.
+        closed = true;
+        lastChar = END_OF_STREAM;
+        super.close();
+    }
+
+    /**
+     * Returns the current line number
+     *
+     * @return the current line number
+     */
+    long getCurrentLineNumber() {
+        // Check if we are at EOL or EOF or just starting
+        if (lastChar == CR || lastChar == LF || lastChar == UNDEFINED || lastChar == END_OF_STREAM) {
+            return eolCounter; // counter is accurate
         }
-        lastChar = current;
-        this.position++;
-        return lastChar;
+        return eolCounter + 1; // Allow for counter being incremented only at EOL
     }
 
     /**
@@ -74,6 +90,80 @@ final class ExtendedBufferedReader extends BufferedReader {
      * @return the last character that was read
      */
     int getLastChar() {
+        return lastChar;
+    }
+
+    /**
+     * Gets the character position in the reader.
+     *
+     * @return the current position in the reader (counting characters, not bytes since this is a Reader)
+     */
+    long getPosition() {
+        return this.position;
+    }
+
+    public boolean isClosed() {
+        return closed;
+    }
+
+    /**
+     * Returns the next character in the current reader without consuming it. So the next call to {@link #read()} will
+     * still return this value. Does not affect line number or last character.
+     *
+     * @return the next character
+     *
+     * @throws IOException
+     *             If an I/O error occurs
+     */
+    int lookAhead() throws IOException {
+        super.mark(1);
+        final int c = super.read();
+        super.reset();
+
+        return c;
+    }
+
+    /**
+     * Populates the buffer with the next {@code buf.length} characters in the
+     * current reader without consuming them. The next call to {@link #read()} will
+     * still return the next value. This doesn't affect line number or last
+     * character.
+     *
+     * @param buf the buffer to fill for the look ahead.
+     * @return the buffer itself
+     * @throws IOException If an I/O error occurs
+     */
+    char[] lookAhead(final char[] buf) throws IOException {
+        final int n = buf.length;
+        super.mark(n);
+        super.read(buf, 0, n);
+        super.reset();
+
+        return buf;
+    }
+
+    /**
+     * Returns the next n characters in the current reader without consuming them. The next call to {@link #read()} will still return the next value. This
+     * doesn't affect line number or last character.
+     *
+     * @param n the number characters look ahead.
+     * @return the next n characters.
+     * @throws IOException If an I/O error occurs
+     */
+    char[] lookAhead(final int n) throws IOException {
+        final char[] buf = new char[n];
+        return lookAhead(buf);
+    }
+
+    @Override
+    public int read() throws IOException {
+        final int current = super.read();
+        if (current == CR || current == LF && lastChar != CR ||
+            current == END_OF_STREAM && lastChar != CR && lastChar != LF && lastChar != END_OF_STREAM) {
+            eolCounter++;
+        }
+        lastChar = current;
+        position++;
         return lastChar;
     }
 
@@ -90,7 +180,7 @@ final class ExtendedBufferedReader extends BufferedReader {
             for (int i = offset; i < offset + len; i++) {
                 final char ch = buf[i];
                 if (ch == LF) {
-                    if (CR != (i > 0 ? buf[i - 1] : lastChar)) {
+                    if (CR != (i > offset ? buf[i - 1] : lastChar)) {
                         eolCounter++;
                     }
                 } else if (ch == CR) {
@@ -109,84 +199,37 @@ final class ExtendedBufferedReader extends BufferedReader {
     }
 
     /**
-     * Calls {@link BufferedReader#readLine()} which drops the line terminator(s). This method should only be called
-     * when processing a comment, otherwise information can be lost.
+     * Gets the next line, dropping the line terminator(s). This method should only be called when processing a
+     * comment, otherwise information can be lost.
      * <p>
-     * Increments {@link #eolCounter}
+     * Increments {@link #eolCounter} and updates {@link #position}.
+     * </p>
      * <p>
-     * Sets {@link #lastChar} to {@link Constants#END_OF_STREAM} at EOF, otherwise to LF
+     * Sets {@link #lastChar} to {@link Constants#END_OF_STREAM} at EOF, otherwise the last EOL character.
+     * </p>
      *
      * @return the line that was read, or null if reached EOF.
      */
     @Override
     public @Nullable String readLine() throws IOException {
-        final String line = super.readLine();
-
-        if (line != null) {
-            lastChar = LF; // needed for detecting start of line
-            eolCounter++;
-        } else {
-            lastChar = END_OF_STREAM;
+        if (lookAhead() == END_OF_STREAM) {
+            return null;
         }
-
-        return line;
-    }
-
-    /**
-     * Returns the next character in the current reader without consuming it. So the next call to {@link #read()} will
-     * still return this value. Does not affect line number or last character.
-     *
-     * @return the next character
-     *
-     * @throws IOException
-     *             if there is an error in reading
-     */
-    int lookAhead() throws IOException {
-        super.mark(1);
-        final int c = super.read();
-        super.reset();
-
-        return c;
-    }
-
-    /**
-     * Returns the current line number
-     *
-     * @return the current line number
-     */
-    long getCurrentLineNumber() {
-        // Check if we are at EOL or EOF or just starting
-        if (lastChar == CR || lastChar == LF || lastChar == UNDEFINED || lastChar == END_OF_STREAM) {
-            return eolCounter; // counter is accurate
+        final StringBuilder buffer = new StringBuilder();
+        while (true) {
+            final int current = read();
+            if (current == CR) {
+                final int next = lookAhead();
+                if (next == LF) {
+                    read();
+                }
+            }
+            if (current == END_OF_STREAM || current == LF || current == CR) {
+                break;
+            }
+            buffer.append((char) current);
         }
-        return eolCounter + 1; // Allow for counter being incremented only at EOL
-    }
-
-    /**
-     * Gets the character position in the reader.
-     *
-     * @return the current position in the reader (counting characters, not bytes since this is a Reader)
-     */
-    long getPosition() {
-        return this.position;
-    }
-
-    public boolean isClosed() {
-        return closed;
-    }
-
-    /**
-     * Closes the stream.
-     *
-     * @throws IOException
-     *             If an I/O error occurs
-     */
-    @Override
-    public void close() throws IOException {
-        // Set ivars before calling super close() in case close() throws an IOException.
-        closed = true;
-        lastChar = END_OF_STREAM;
-        super.close();
+        return buffer.toString();
     }
 
 }

@@ -20,19 +20,20 @@
   <parent>
     <groupId>org.apache.commons</groupId>
     <artifactId>commons-parent</artifactId>
-    <version>50</version>
+    <version>52</version>
   </parent>
   <artifactId>commons-csv</artifactId>
-  <version>1.8</version>
+  <version>1.9.1-SNAPSHOT</version>
   <name>Apache Commons CSV</name>
   <url>https://commons.apache.org/proper/commons-csv/</url>
+  <inceptionYear>2005</inceptionYear>
   <description>The Apache Commons CSV library provides a simple interface for reading and writing CSV files of various types.</description>
 
   <dependencies>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>5.6.0</version>
+      <version>5.8.0-M1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -44,19 +45,19 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>3.2.4</version>
+      <version>3.11.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.6</version>
+      <version>2.11.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-      <version>3.9</version>
+      <version>3.12.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -65,16 +66,12 @@
       <version>1.4.200</version>
       <scope>test</scope>
     </dependency>
+
     <!-- Annotations from the Checker Framework: nullness, interning, locking, ... -->
     <dependency>
       <groupId>org.checkerframework</groupId>
       <artifactId>checker-qual</artifactId>
-      <version>3.1.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.checkerframework</groupId>
-      <artifactId>jdk8</artifactId>
-      <version>3.1.1</version>
+      <version>3.17.0</version>
     </dependency>
     <dependency>
       <groupId>com.google.errorprone</groupId>
@@ -109,10 +106,19 @@
       <organization>Apache</organization>
     </developer>
     <developer>
-      <name>Gary Gregory</name>
       <id>ggregory</id>
-      <email>ggregory@apache.org</email>
-      <url>http://www.garygregory.com</url>
+      <name>Gary Gregory</name>
+      <email>ggregory at apache.org</email>
+      <url>https://www.garygregory.com</url>
+      <organization>The Apache Software Foundation</organization>
+      <organizationUrl>https://www.apache.org/</organizationUrl>      
+      <roles>
+        <role>PMC Member</role>
+      </roles>
+      <timezone>America/New_York</timezone>
+      <properties>
+        <picUrl>https://people.apache.org/~ggregory/img/garydgregory80.png</picUrl>
+      </properties>
     </developer>
     <developer>
       <name>Benedikt Ritter</name>
@@ -153,16 +159,15 @@
   </distributionManagement>
 
   <properties>
-    <commons.release.version>1.8</commons.release.version>
+    <commons.release.version>1.9.0</commons.release.version>
     <commons.release.desc>(Java 8)</commons.release.desc>
     <!-- The RC version used in the staging repository URL. -->
-    <commons.rc.version>RC2</commons.rc.version>
-    <commons.bc.version>1.7</commons.bc.version>
+    <commons.rc.version>RC1</commons.rc.version>
+    <commons.bc.version>1.8</commons.bc.version>
     <commons.componentid>csv</commons.componentid>
     <commons.module.name>org.apache.commons.csv</commons.module.name>
     <commons.jira.id>CSV</commons.jira.id>
     <commons.jira.pid>12313222</commons.jira.pid>
-    <project.inceptionYear>2005</project.inceptionYear>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <commons.javadoc.java.link>http://docs.oracle.com/javase/8/docs/api/</commons.javadoc.java.link>
@@ -171,24 +176,114 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <commons.encoding>UTF-8</commons.encoding>
 
-    <checkstyle.version>3.0.0</checkstyle.version>
-    <checkstyle.header.file>${basedir}/LICENSE-header.txt</checkstyle.header.file>
+    <commons.checkstyle-plugin.version>3.1.2</commons.checkstyle-plugin.version>
+    <commons.checkstyle.version>8.44</commons.checkstyle.version>
+    <checkstyle.header.file>${basedir}/src/site/resources/checkstyle/checkstyle-header.txt</checkstyle.header.file>
+    <checkstyle.config.file>${basedir}/src/site/resources/checkstyle/checkstyle.xml</checkstyle.config.file>
+    <checkstyle.suppress.file>${basedir}/src/site/resources/checkstyle/checkstyle-suppressions.xml</checkstyle.suppress.file>
     <checkstyle.resourceExcludes>LICENSE.txt, NOTICE.txt, **/maven-archiver/pom.properties</checkstyle.resourceExcludes>
 
-    <pmd.version>3.12.0</pmd.version>
+    <commons.pmd.version>3.14.0</commons.pmd.version>
+    <commons.pmd-impl.version>6.36.0</commons.pmd-impl.version>
+    <commons.jacoco.version>0.8.7</commons.jacoco.version>
+    <commons.spotbugs.version>4.3.0</commons.spotbugs.version>
+    <commons.japicmp.version>0.15.3</commons.japicmp.version>
+    <commons.javadoc.version>3.3.0</commons.javadoc.version>
+    <biz.aQute.bndlib.version>5.3.0</biz.aQute.bndlib.version>
     <japicmp.skip>false</japicmp.skip>
-    
+
     <commons.release.isDistModule>true</commons.release.isDistModule>
-    <commons.releaseManagerName>Gary Gregory</commons.releaseManagerName>    
+    <commons.releaseManagerName>Gary Gregory</commons.releaseManagerName>
     <commons.releaseManagerKey>86fdc7e2a11262cb</commons.releaseManagerKey>
 
     <!-- These properties will be set by the Maven Dependency plugin -->
-    <annotatedJdk>${org.checkerframework:jdk8:jar}</annotatedJdk>
     <errorProneJavac>${com.google.errorprone:javac:jar}</errorProneJavac>
   </properties>
 
   <build>
-    <defaultGoal>clean verify apache-rat:check clirr:check javadoc:javadoc</defaultGoal>
+    <defaultGoal>clean package apache-rat:check japicmp:cmp checkstyle:check spotbugs:check pmd:check javadoc:javadoc</defaultGoal>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>${commons.checkstyle-plugin.version}</version>
+          <configuration>
+            <configLocation>${checkstyle.config.file}</configLocation>
+            <enableRulesSummary>false</enableRulesSummary>
+            <suppressionsLocation>${checkstyle.suppress.file}</suppressionsLocation>
+          </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>com.puppycrawl.tools</groupId>
+              <artifactId>checkstyle</artifactId>
+              <version>${commons.checkstyle.version}</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-pmd-plugin</artifactId>
+          <version>${commons.pmd.version}</version>
+          <dependencies>
+            <dependency>
+              <groupId>net.sourceforge.pmd</groupId>
+              <artifactId>pmd-core</artifactId>
+              <version>${commons.pmd-impl.version}</version>
+            </dependency>
+            <dependency>
+              <groupId>net.sourceforge.pmd</groupId>
+              <artifactId>pmd-java</artifactId>
+              <version>${commons.pmd-impl.version}</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <targetJdk>${maven.compiler.target}</targetJdk>
+            <skipEmptyReport>false</skipEmptyReport>
+            <rulesets>
+              <ruleset>${basedir}/src/site/resources/pmd/pmd-ruleset.xml</ruleset>
+            </rulesets>
+          </configuration>
+        </plugin>
+        <!-- We need to add our test data files to rat exclusions -->
+        <!-- Needed for command-line access, e.g mvn apache-rat:rat and mvn apache-rat:check -->
+        <plugin>
+          <groupId>org.apache.rat</groupId>
+          <artifactId>apache-rat-plugin</artifactId>
+          <!-- Should agree with config in reporting section -->
+          <configuration>
+            <excludes>
+	      <!-- Generated file. -->
+	      <exclude>TAGS</exclude>
+	      <!-- Checker Framework support files -->
+	      <exclude>README-typetools.md</exclude>
+	      <exclude>cfMavenCentral.xml</exclude>
+              <!-- These files are used as test data and test result specifications. -->
+              <exclude>src/test/resources/org/apache/commons/csv/empty.txt</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/csv-167/sample1.csv</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSV-198/optd_por_public.csv</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSV-213/999751170.patch.csv</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSVFileParser/bom.csv</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSVFileParser/test.csv</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSVFileParser/test_default.txt</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSVFileParser/test_default_comment.txt</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSVFileParser/test_rfc4180.txt</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSVFileParser/test_rfc4180_trim.txt</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSVFileParser/testCSV85.csv</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSVFileParser/testCSV85_default.txt</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSVFileParser/testCSV85_ignoreEmpty.txt</exclude>
+              <!-- The ferc.gov files are included discussion in https://issues.apache.org/jira/browse/LEGAL-175. -->
+              <exclude>src/test/resources/org/apache/commons/csv/ferc.gov/contract.txt</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/ferc.gov/transaction.txt</exclude>
+              <exclude>src/test/resources/**/*.bin</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSV-259/sample.txt</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSVFileParser/testCSV246.csv</exclude>
+              <exclude>src/test/resources/org/apache/commons/csv/CSVFileParser/testCSV246_checkWithNoComment.txt</exclude>
+            </excludes>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -247,71 +342,24 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>${checkstyle.version}</version>
-        <configuration>
-          <configLocation>${basedir}/checkstyle.xml</configLocation>
-          <enableRulesSummary>false</enableRulesSummary>
-          <suppressionsLocation>${basedir}/src/main/resources/checkstyle/checkstyle-suppressions.xml</suppressionsLocation>
-        </configuration>
       </plugin>
-      <!-- Allow findbugs to be run interactively; keep in sync with report config below -->
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>${commons.findbugs.version}</version>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>${commons.spotbugs.version}</version>
         <configuration>
-          <threshold>Normal</threshold>
-          <effort>Default</effort>
-          <excludeFilterFile>${basedir}/src/main/resources/findbugs/findbugs-exclude-filter.xml</excludeFilterFile>
+          <excludeFilterFile>${basedir}/src/site/resources/spotbugs/spotbugs-exclude-filter.xml</excludeFilterFile>
         </configuration>
       </plugin>
       <!-- Allow pmd to be run interactively; keep in sync with report config below -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-pmd-plugin</artifactId>
-        <version>${pmd.version}</version>
-        <configuration>
-          <targetJdk>${maven.compiler.target}</targetJdk>
-          <skipEmptyReport>false</skipEmptyReport>
-          <analysisCache>true</analysisCache>
-          <rulesets>
-            <ruleset>${basedir}/src/main/resources/pmd/pmd-ruleset.xml</ruleset>
-          </rulesets>
-        </configuration>
       </plugin>
 
-      <!-- We need to add our test data files to rat exclusions -->
-      <!-- Needed for command-line access, e.g mvn apache-rat:rat and mvn apache-rat:check -->
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-        <!-- Should agree with config in reporting section -->
-        <configuration>
-          <excludes>
-	    <!-- Generated file. -->
-            <exclude>TAGS</exclude>
-	    <!-- Checker Framework support files -->
-            <exclude>README-typetools.md</exclude>
-            <exclude>cfMavenCentral.xml</exclude>
-            <!-- These files are used as test data and test result specifications. -->
-            <exclude>src/test/resources/csv-167/sample1.csv</exclude>
-            <exclude>src/test/resources/CSV-198/optd_por_public.csv</exclude>
-            <exclude>src/test/resources/CSV-213/999751170.patch.csv</exclude>
-            <exclude>src/test/resources/CSVFileParser/bom.csv</exclude>
-            <exclude>src/test/resources/CSVFileParser/test.csv</exclude>
-            <exclude>src/test/resources/CSVFileParser/test_default.txt</exclude>
-            <exclude>src/test/resources/CSVFileParser/test_default_comment.txt</exclude>
-            <exclude>src/test/resources/CSVFileParser/test_rfc4180.txt</exclude>
-            <exclude>src/test/resources/CSVFileParser/test_rfc4180_trim.txt</exclude>
-            <exclude>src/test/resources/CSVFileParser/testCSV85.csv</exclude>
-            <exclude>src/test/resources/CSVFileParser/testCSV85_default.txt</exclude>
-            <exclude>src/test/resources/CSVFileParser/testCSV85_ignoreEmpty.txt</exclude>
-            <!-- The ferc.gov files are included discussion in https://issues.apache.org/jira/browse/LEGAL-175. -->
-            <exclude>src/test/resources/ferc.gov/contract.txt</exclude>
-            <exclude>src/test/resources/ferc.gov/transaction.txt</exclude>
-            <exclude>src/test/resources/**/*.bin</exclude>
-          </excludes>
-        </configuration>
       </plugin>
 
       <plugin>
@@ -326,7 +374,6 @@
 	  </execution>
 	</executions>
       </plugin>
-
     </plugins>
   </build>
 
@@ -336,12 +383,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>${checkstyle.version}</version>
-        <configuration>
-          <configLocation>${basedir}/checkstyle.xml</configLocation>
-          <enableRulesSummary>false</enableRulesSummary>
-          <suppressionsLocation>${basedir}/src/main/resources/checkstyle/checkstyle-suppressions.xml</suppressionsLocation>
-        </configuration>
         <!-- We need to specify reportSets because 2.9.1 creates two reports -->
         <reportSets>
           <reportSet>
@@ -352,27 +393,16 @@
         </reportSets>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-pmd-plugin</artifactId>
-        <version>${pmd.version}</version>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <version>${commons.spotbugs.version}</version>
         <configuration>
-          <targetJdk>${maven.compiler.target}</targetJdk>
-          <skipEmptyReport>false</skipEmptyReport>
-          <analysisCache>true</analysisCache>
-          <rulesets>
-            <ruleset>${basedir}/src/main/resources/pmd/pmd-ruleset.xml</ruleset>
-          </rulesets>
+          <excludeFilterFile>${basedir}/src/site/resources/spotbugs/spotbugs-exclude-filter.xml</excludeFilterFile>
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>${commons.findbugs.version}</version>
-        <configuration>
-          <threshold>Normal</threshold>
-          <effort>Default</effort>
-          <excludeFilterFile>${basedir}/src/main/resources/findbugs/findbugs-exclude-filter.xml</excludeFilterFile>
-        </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -419,31 +449,9 @@
           </tagListOptions>
         </configuration>
       </plugin>
-      <!-- We need to add our test data files to rat exclusions -->
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
-        <version>${commons.rat.version}</version>
-        <!-- Should agree with config in build section -->
-        <configuration>
-          <excludes>
-            <exclude>src/test/resources/csv-167/sample1.csv</exclude>
-            <exclude>src/test/resources/CSV-198/optd_por_public.csv</exclude>
-            <exclude>src/test/resources/CSV-213/999751170.patch.csv</exclude>
-            <exclude>src/test/resources/CSVFileParser/bom.csv</exclude>
-            <exclude>src/test/resources/CSVFileParser/test.csv</exclude>
-            <exclude>src/test/resources/CSVFileParser/test_default.txt</exclude>
-            <exclude>src/test/resources/CSVFileParser/test_default_comment.txt</exclude>
-            <exclude>src/test/resources/CSVFileParser/test_rfc4180.txt</exclude>
-            <exclude>src/test/resources/CSVFileParser/test_rfc4180_trim.txt</exclude>
-            <exclude>src/test/resources/CSVFileParser/testCSV85.csv</exclude>
-            <exclude>src/test/resources/CSVFileParser/testCSV85_default.txt</exclude>
-            <exclude>src/test/resources/CSVFileParser/testCSV85_ignoreEmpty.txt</exclude>
-            <exclude>src/test/resources/ferc.gov/contract.txt</exclude>
-            <exclude>src/test/resources/ferc.gov/transaction.txt</exclude>
-            <exclude>src/test/resources/**/*.bin</exclude>
-          </excludes>
-        </configuration>
       </plugin>
     </plugins>
   </reporting>
@@ -457,14 +465,14 @@
         <dependency>
           <groupId>org.openjdk.jmh</groupId>
           <artifactId>jmh-core</artifactId>
-          <version>1.5.2</version>
+          <version>1.32</version>
           <scope>test</scope>
         </dependency>
 
         <dependency>
           <groupId>org.openjdk.jmh</groupId>
           <artifactId>jmh-generator-annprocess</artifactId>
-          <version>1.5.2</version>
+          <version>1.32</version>
           <scope>test</scope>
         </dependency>
 
@@ -485,14 +493,14 @@
         <dependency>
           <groupId>com.opencsv</groupId>
           <artifactId>opencsv</artifactId>
-          <version>3.1</version>
+          <version>5.5.1</version>
           <scope>test</scope>
         </dependency>
 
         <dependency>
           <groupId>net.sf.supercsv</groupId>
           <artifactId>super-csv</artifactId>
-          <version>2.2.1</version>
+          <version>2.4.0</version>
           <scope>test</scope>
         </dependency>
 
@@ -502,12 +510,13 @@
           <groupId>org.skife.kasparov</groupId>
           <artifactId>csv</artifactId>
           <version>1.0</version>
+          <scope>provided</scope>
         </dependency>
 
         <dependency>
           <groupId>org.apache.commons</groupId>
           <artifactId>commons-lang3</artifactId>
-          <version>3.6</version>
+          <version>3.12.0</version>
         </dependency>
       </dependencies>
 
@@ -571,6 +580,109 @@
         <coveralls.skip>true</coveralls.skip>
       </properties>
     </profile>
+
+    <!-- Profiles for the Checker Framework. -->
+    <profile>
+      <id>checkerframework</id>
+      <activation>
+        <jdk>[1.8,)</jdk>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>3.8.1</version>
+            <configuration>
+              <fork>true</fork> <!-- Must fork or else JVM arguments are ignored. -->
+              <compilerArguments>
+                <Xmaxerrs>10000</Xmaxerrs>
+                <Xmaxwarns>10000</Xmaxwarns>
+              </compilerArguments>
+              <annotationProcessorPaths>
+                <path>
+                  <groupId>org.checkerframework</groupId>
+                  <artifactId>checker</artifactId>
+                  <version>3.17.0</version>
+                </path>
+              </annotationProcessorPaths>
+              <annotationProcessors>
+                <!-- Add all the checkers you want to enable here -->
+                <annotationProcessor>org.checkerframework.checker.nullness.NullnessChecker</annotationProcessor>
+              </annotationProcessors>
+              <compilerArgs>
+                <!-- <arg>-Awarns</arg> --> <!-- -Awarns turns type-checking errors into warnings. -->
+              </compilerArgs>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+      <dependencies>
+        <dependency>
+          <groupId>org.checkerframework</groupId>
+          <artifactId>checker</artifactId>
+          <version>3.17.0</version>
+        </dependency>
+      </dependencies>
+    </profile>
+
+    <profile>
+      <id>checkerframework-jdk8</id>
+      <activation>
+        <jdk>1.8</jdk>
+      </activation>
+      <!-- using github.com/google/error-prone-javac is required when running on JDK 8 -->
+      <properties>
+        <javac.version>9+181-r4173-1</javac.version>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>com.google.errorprone</groupId>
+          <artifactId>javac</artifactId>
+          <version>9+181-r4173-1</version>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+              <fork>true</fork>
+              <compilerArgs combine.children="append">
+                <arg>-Xbootclasspath/p:${annotatedJdk}</arg>
+                <arg>-J-Xbootclasspath/p:${settings.localRepository}/com/google/errorprone/javac/${javac.version}/javac-${javac.version}.jar</arg>
+              </compilerArgs>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>checkerframework-jdk9orlater</id>
+      <activation>
+        <jdk>[9,)</jdk>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+              <fork>true</fork>
+              <compilerArgs combine.children="append">
+                <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+              </compilerArgs>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+      <properties>
+        <!-- Needed for animal-sniffer-maven-plugin version 1.19 (version 1.20 is fixed). -->
+        <animal.sniffer.skip>true</animal.sniffer.skip>
+      </properties>
+    </profile>
+
   </profiles>
 
 </project>

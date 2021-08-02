@@ -19,7 +19,6 @@ package org.apache.commons.csv.perf;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -30,6 +29,7 @@ import java.io.Reader;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,37 +43,42 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("boxing") // test code
 public class PerformanceTest {
 
-    private final int max = 10;
+    private static final String TEST_RESRC = "org/apache/commons/csv/perf/worldcitiespop.txt.gz";
 
     private static final File BIG_FILE = new File(System.getProperty("java.io.tmpdir"), "worldcitiespop.txt");
-
     @BeforeAll
     public static void setUpClass() throws FileNotFoundException, IOException {
         if (BIG_FILE.exists()) {
             System.out.println(String.format("Found test fixture %s: %,d bytes.", BIG_FILE, BIG_FILE.length()));
             return;
         }
-        System.out.println("Decompressing test fixture " + BIG_FILE + "...");
-        try (final InputStream input = new GZIPInputStream(
-                new FileInputStream("src/test/resources/perf/worldcitiespop.txt.gz"));
-                final OutputStream output = new FileOutputStream(BIG_FILE)) {
+        System.out.println("Decompressing test fixture to: " + BIG_FILE + "...");
+        try (
+            final InputStream input = new GZIPInputStream(
+                PerformanceTest.class.getClassLoader().getResourceAsStream(TEST_RESRC));
+            final OutputStream output = new FileOutputStream(BIG_FILE)) {
             IOUtils.copy(input, output);
             System.out.println(String.format("Decompressed test fixture %s: %,d bytes.", BIG_FILE, BIG_FILE.length()));
         }
     }
 
+    private final int max = 10;
+
     private BufferedReader createBufferedReader() throws IOException {
         return new BufferedReader(new FileReader(BIG_FILE));
     }
 
-    private long parse(final Reader in, final boolean traverseColumns) throws IOException {
-        final CSVFormat format = CSVFormat.DEFAULT.withIgnoreSurroundingSpaces(false);
+    private long parse(final Reader reader, final boolean traverseColumns) throws IOException {
+        final CSVFormat format = CSVFormat.DEFAULT.builder().setIgnoreSurroundingSpaces(false).build();
         long recordCount = 0;
-        for (final CSVRecord record : format.parse(in)) {
-            recordCount++;
-            if (traverseColumns) {
-                for (@SuppressWarnings("unused") final String value : record) {
-                    // do nothing for now
+        try (final CSVParser parser = format.parse(reader)) {
+            for (final CSVRecord record : parser) {
+                recordCount++;
+                if (traverseColumns) {
+                    for (@SuppressWarnings("unused")
+                    final String value : record) {
+                        // do nothing for now
+                    }
                 }
             }
         }
@@ -94,10 +99,13 @@ public class PerformanceTest {
 
     public long testParseBigFile(final boolean traverseColumns) throws Exception {
         final long startMillis = System.currentTimeMillis();
-        final long count = this.parse(this.createBufferedReader(), traverseColumns);
-        final long totalMillis = System.currentTimeMillis() - startMillis;
-        this.println(String.format("File parsed in %,d milliseconds with Commons CSV: %,d lines.", totalMillis, count));
-        return totalMillis;
+        try (final BufferedReader reader = this.createBufferedReader()) {
+            final long count = this.parse(reader, traverseColumns);
+            final long totalMillis = System.currentTimeMillis() - startMillis;
+            this.println(
+                String.format("File parsed in %,d milliseconds with Commons CSV: %,d lines.", totalMillis, count));
+            return totalMillis;
+        }
     }
 
     @Test

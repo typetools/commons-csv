@@ -30,6 +30,7 @@ import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Prints values in a {@link CSVFormat CSV format}.
@@ -71,7 +72,7 @@ import java.util.Arrays;
 public final class CSVPrinter implements Flushable, Closeable {
 
     /** The place that the values get written. */
-    private final Appendable out;
+    private final Appendable appendable;
     private final CSVFormat format;
 
     /** True if we just began a new record. */
@@ -84,7 +85,7 @@ public final class CSVPrinter implements Flushable, Closeable {
      * and escaping with a different character) are not supported.
      * </p>
      *
-     * @param out
+     * @param appendable
      *            stream to which to print. Must not be null.
      * @param format
      *            the CSV format. Must not be null.
@@ -93,29 +94,23 @@ public final class CSVPrinter implements Flushable, Closeable {
      * @throws IllegalArgumentException
      *             thrown if the parameters of the format are inconsistent or if either out or format are null.
      */
-    public CSVPrinter(final Appendable out, final CSVFormat format) throws IOException {
-        Assertions.notNull(out, "out");
-        Assertions.notNull(format, "format");
+    public CSVPrinter(final Appendable appendable, final CSVFormat format) throws IOException {
+        Objects.requireNonNull(appendable, "appendable");
+        Objects.requireNonNull(format, "format");
 
-        this.out = out;
-        this.format = format;
+        this.appendable = appendable;
+        this.format = format.copy();
         // TODO: Is it a good idea to do this here instead of on the first call to a print method?
         // It seems a pain to have to track whether the header has already been printed or not.
         if (format.getHeaderComments() != null) {
             for (final String line : format.getHeaderComments()) {
-                if (line != null) {
-                    this.printComment(line);
-                }
+                this.printComment(line);
             }
         }
         if (format.getHeader() != null && !format.getSkipHeaderRecord()) {
             this.printRecord((Object[]) format.getHeader());
         }
     }
-
-    // ======================================================
-    // printing implementation
-    // ======================================================
 
     @Override
     public void close() throws IOException {
@@ -134,8 +129,8 @@ public final class CSVPrinter implements Flushable, Closeable {
         if (flush || format.getAutoFlush()) {
             flush();
         }
-        if (out instanceof Closeable) {
-            ((Closeable) out).close();
+        if (appendable instanceof Closeable) {
+            ((Closeable) appendable).close();
         }
     }
 
@@ -147,8 +142,8 @@ public final class CSVPrinter implements Flushable, Closeable {
      */
     @Override
     public void flush() throws IOException {
-        if (out instanceof Flushable) {
-            ((Flushable) out).flush();
+        if (appendable instanceof Flushable) {
+            ((Flushable) appendable).flush();
         }
     }
 
@@ -158,7 +153,7 @@ public final class CSVPrinter implements Flushable, Closeable {
      * @return the target Appendable.
      */
     public Appendable getOut() {
-        return this.out;
+        return this.appendable;
     }
 
     /**
@@ -170,7 +165,7 @@ public final class CSVPrinter implements Flushable, Closeable {
      *             If an I/O error occurs
      */
     public void print(final @Nullable Object value) throws IOException {
-        format.print(value, out, newRecord);
+        format.print(value, appendable, newRecord);
         newRecord = false;
     }
 
@@ -197,14 +192,14 @@ public final class CSVPrinter implements Flushable, Closeable {
      */
     @SuppressWarnings("nullness") // getCommentMarker() isn't affected by side effects in this method
     public void printComment(final String comment) throws IOException {
-        if (!format.isCommentMarkerSet()) {
+        if (comment == null || !format.isCommentMarkerSet()) {
             return;
         }
         if (!newRecord) {
             println();
         }
-        out.append(format.getCommentMarker().charValue());
-        out.append(SP);
+        appendable.append(format.getCommentMarker().charValue());
+        appendable.append(SP);
         for (int i = 0; i < comment.length(); i++) {
             final char c = comment.charAt(i);
             switch (c) {
@@ -215,15 +210,27 @@ public final class CSVPrinter implements Flushable, Closeable {
                 //$FALL-THROUGH$ break intentionally excluded.
             case LF:
                 println();
-                out.append(format.getCommentMarker().charValue());
-                out.append(SP);
+                appendable.append(format.getCommentMarker().charValue());
+                appendable.append(SP);
                 break;
             default:
-                out.append(c);
+                appendable.append(c);
                 break;
             }
         }
         println();
+    }
+
+    /**
+     * Prints headers for a result set based on its metadata.
+     *
+     * @param resultSet The result set to query for metadata.
+     * @throws IOException If an I/O error occurs.
+     * @throws SQLException If a database access error occurs or this method is called on a closed result set.
+     * @since 1.9.0
+     */
+    public void printHeaders(final ResultSet resultSet) throws IOException, SQLException {
+        printRecord((Object[]) format.builder().setHeader(resultSet).build().getHeader());
     }
 
     /**
@@ -233,7 +240,7 @@ public final class CSVPrinter implements Flushable, Closeable {
      *             If an I/O error occurs
      */
     public void println() throws IOException {
-        format.println(out);
+        format.println(appendable);
         newRecord = true;
     }
 
@@ -271,8 +278,7 @@ public final class CSVPrinter implements Flushable, Closeable {
      *             If an I/O error occurs
      */
     public void printRecord(final Object... values) throws IOException {
-        format.printRecord(out, values);
-        newRecord = true;
+        printRecord(Arrays.asList(values));
     }
 
     /**
@@ -384,9 +390,26 @@ public final class CSVPrinter implements Flushable, Closeable {
         while (resultSet.next()) {
             for (int i = 1; i <= columnCount; i++) {
                 final Object object = resultSet.getObject(i);
+                // TODO Who manages the Clob? The JDBC driver or must we close it? Is it driver-dependent?
                 print(object instanceof Clob ? ((Clob) object).getCharacterStream() : object);
             }
             println();
         }
+    }
+
+    /**
+     * Prints all the objects with metadata in the given JDBC result set based on the header boolean.
+     *
+     * @param resultSet source of row data.
+     * @param printHeader whether to print headers.
+     * @throws IOException If an I/O error occurs
+     * @throws SQLException if a database access error occurs
+     * @since 1.9.0
+     */
+    public void printRecords(final ResultSet resultSet, final boolean printHeader) throws SQLException, IOException {
+        if (printHeader) {
+            printHeaders(resultSet);
+        }
+        printRecords(resultSet);
     }
 }

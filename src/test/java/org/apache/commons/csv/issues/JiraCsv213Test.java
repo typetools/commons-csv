@@ -17,10 +17,10 @@
 package org.apache.commons.csv.issues;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -41,22 +41,21 @@ public class JiraCsv213Test {
 
     private void createEndChannel(final File csvFile) {
         // @formatter:off
-        final CSVFormat csvFormat =
-                CSVFormat.DEFAULT
-                    .withDelimiter(';')
-                    .withFirstRecordAsHeader()
-                    .withRecordSeparator('\n')
-                    .withQuoteMode(QuoteMode.ALL);
+        final CSVFormat csvFormat = CSVFormat.DEFAULT.builder()
+                    .setDelimiter(';')
+                    .setHeader()
+                    .setSkipHeaderRecord(true)
+                    .setRecordSeparator('\n')
+                    .setQuoteMode(QuoteMode.ALL)
+                    .build();
         // @formatter:on
-        try (CSVParser parser = csvFormat
-                .parse(new InputStreamReader(new FileInputStream(csvFile), StandardCharsets.UTF_8))) {
+        try (Reader reader = Files.newBufferedReader(csvFile.toPath(), StandardCharsets.UTF_8);
+            CSVParser parser = csvFormat.parse(reader)) {
             if (parser.iterator().hasNext()) {
                 // System.out.println(parser.getCurrentLineNumber());
                 // System.out.println(parser.getRecordNumber());
                 // get only first record we don't need other's
                 parser.iterator().next(); // this fails
-
-                return;
             }
         } catch (final IOException e) {
             throw new IllegalStateException("Error while adding end channel to CSV", e);

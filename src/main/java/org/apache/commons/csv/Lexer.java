@@ -50,7 +50,9 @@ final class Lexer implements Closeable {
      */
     private static final char DISABLED = '\ufffe';
 
-    private final char delimiter;
+    private final char[] delimiter;
+    private final char[] delimiterBuf;
+    private final char[] escapeDelimiterBuf;
     private final char escape;
     private final char quoteChar;
     private final char commentStart;
@@ -62,18 +64,144 @@ final class Lexer implements Closeable {
     private final ExtendedBufferedReader reader;
     private @MonotonicNonNull String firstEol;
 
-    @Nullable String getFirstEol(){
-        return firstEol;
-    }
-
     Lexer(final CSVFormat format, final ExtendedBufferedReader reader) {
         this.reader = reader;
-        this.delimiter = format.getDelimiter();
+        this.delimiter = format.getDelimiterString().toCharArray();
         this.escape = mapNullToDisabled(format.getEscapeCharacter());
         this.quoteChar = mapNullToDisabled(format.getQuoteCharacter());
         this.commentStart = mapNullToDisabled(format.getCommentMarker());
         this.ignoreSurroundingSpaces = format.getIgnoreSurroundingSpaces();
         this.ignoreEmptyLines = format.getIgnoreEmptyLines();
+        this.delimiterBuf = new char[delimiter.length - 1];
+        this.escapeDelimiterBuf = new char[2 * delimiter.length - 1];
+    }
+
+    /**
+     * Closes resources.
+     *
+     * @throws IOException
+     *             If an I/O error occurs
+     */
+    @Override
+    public void close() throws IOException {
+        reader.close();
+    }
+
+    /**
+     * Returns the current character position
+     *
+     * @return the current character position
+     */
+    long getCharacterPosition() {
+        return reader.getPosition();
+    }
+
+    /**
+     * Returns the current line number
+     *
+     * @return the current line number
+     */
+    long getCurrentLineNumber() {
+        return reader.getCurrentLineNumber();
+    }
+
+    @Nullable String getFirstEol(){
+        return firstEol;
+    }
+
+    boolean isClosed() {
+        return reader.isClosed();
+    }
+
+    boolean isCommentStart(final int ch) {
+        return ch == commentStart;
+    }
+
+    /**
+     * Determine whether the next characters constitute a delimiter through {@link ExtendedBufferedReader#lookAhead(char[])}.
+     *
+     * @param ch
+     *             the current character.
+     * @return true if the next characters constitute a delimiter.
+     * @throws IOException If an I/O error occurs.
+     */
+    boolean isDelimiter(final int ch) throws IOException {
+        if (ch != delimiter[0]) {
+            return false;
+        }
+        if (delimiter.length == 1) {
+          return true;
+        }
+        reader.lookAhead(delimiterBuf);
+        for (int i = 0; i < delimiterBuf.length; i++) {
+            if (delimiterBuf[i] != delimiter[i+1]) {
+                return false;
+            }
+        }
+        final int count = reader.read(delimiterBuf, 0, delimiterBuf.length);
+        return count != END_OF_STREAM;
+    }
+
+    /**
+     * Tests if the given character indicates end of file.
+     *
+     * @return true if the given character indicates end of file.
+     */
+    boolean isEndOfFile(final int ch) {
+        return ch == END_OF_STREAM;
+    }
+
+    /**
+     * Tests if the given character is the escape character.
+     *
+     * @return true if the given character is the escape character.
+     */
+    boolean isEscape(final int ch) {
+        return ch == escape;
+    }
+
+    /**
+     * Tests if the next characters constitute a escape delimiter through {@link ExtendedBufferedReader#lookAhead(char[])}.
+     *
+     * For example, for delimiter "[|]" and escape '!', return true if the next characters constitute "![!|!]".
+     *
+     * @return true if the next characters constitute a escape delimiter.
+     * @throws IOException If an I/O error occurs.
+     */
+    boolean isEscapeDelimiter() throws IOException {
+        reader.lookAhead(escapeDelimiterBuf);
+        if (escapeDelimiterBuf[0] != delimiter[0]) {
+            return false;
+        }
+        for (int i = 1; i < delimiter.length; i++) {
+            if (escapeDelimiterBuf[2 * i] != delimiter[i] || escapeDelimiterBuf[2 * i - 1] != escape) {
+                return false;
+            }
+        }
+        final int count = reader.read(escapeDelimiterBuf, 0, escapeDelimiterBuf.length);
+        return count != END_OF_STREAM;
+    }
+
+    private boolean isMetaChar(final int ch) {
+        return ch == escape || ch == quoteChar || ch == commentStart;
+    }
+
+    boolean isQuoteChar(final int ch) {
+        return ch == quoteChar;
+    }
+
+    /**
+     * Tests if the current character represents the start of a line: a CR, LF or is at the start of the file.
+     *
+     * @param ch the character to check
+     * @return true if the character is at the start of a line.
+     */
+    boolean isStartOfLine(final int ch) {
+        return ch == LF || ch == CR || ch == UNDEFINED;
+    }
+
+    private char mapNullToDisabled(final @Nulable Character c) {
+        return c == null ? DISABLED : c.charValue();
     }
 
     /**
@@ -84,9 +212,8 @@ final class Lexer implements Closeable {
      *
      * @param token
      *            an existing Token object to reuse. The caller is responsible to initialize the Token.
-     * @return the next token found
-     * @throws java.io.IOException
-     *             on stream access error
+     * @return the next token found.
+     * @throws java.io.IOException on stream access error.
      */
     Token nextToken(final Token token) throws IOException {
 
@@ -141,7 +268,7 @@ final class Lexer implements Closeable {
         while (token.type == INVALID) {
             // ignore whitespaces at beginning of a token
             if (ignoreSurroundingSpaces) {
-                while (isWhitespace(c) && !eol) {
+                while (Character.isWhitespace((char)c) && !isDelimiter(c) && !eol) {
                     c = reader.read();
                     eol = readEndOfLine(c);
                 }
@@ -173,10 +300,91 @@ final class Lexer implements Closeable {
     }
 
     /**
+     * Parses an encapsulated token.
+     * <p>
+     * Encapsulated tokens are surrounded by the given encapsulating-string. The encapsulator itself might be included
+     * in the token using a doubling syntax (as "", '') or using escaping (as in \", \'). Whitespaces before and after
+     * an encapsulated token are ignored. The token is finished when one of the following conditions become true:
+     * </p>
+     * <ul>
+     * <li>an unescaped encapsulator has been reached, and is followed by optional whitespace then:</li>
+     * <ul>
+     * <li>delimiter (TOKEN)</li>
+     * <li>end of line (EORECORD)</li>
+     * </ul>
+     * <li>end of stream has been reached (EOF)</li> </ul>
+     *
+     * @param token
+     *            the current token
+     * @return a valid token object
+     * @throws IOException
+     *             on invalid state: EOF before closing encapsulator or invalid character before delimiter or EOL
+     */
+    private Token parseEncapsulatedToken(final Token token) throws IOException {
+        token.isQuoted = true;
+        // save current line number in case needed for IOE
+        final long startLineNumber = getCurrentLineNumber();
+        int c;
+        while (true) {
+            c = reader.read();
+
+            if (isEscape(c)) {
+                if (isEscapeDelimiter()) {
+                    token.content.append(delimiter);
+                } else {
+                    final int unescaped = readEscape();
+                    if (unescaped == END_OF_STREAM) { // unexpected char after escape
+                        token.content.append((char) c).append((char) reader.getLastChar());
+                    } else {
+                        token.content.append((char) unescaped);
+                    }
+                }
+            } else if (isQuoteChar(c)) {
+                if (isQuoteChar(reader.lookAhead())) {
+                    // double or escaped encapsulator -> add single encapsulator to token
+                    c = reader.read();
+                    token.content.append((char) c);
+                } else {
+                    // token finish mark (encapsulator) reached: ignore whitespace till delimiter
+                    while (true) {
+                        c = reader.read();
+                        if (isDelimiter(c)) {
+                            token.type = TOKEN;
+                            return token;
+                        }
+                        if (isEndOfFile(c)) {
+                            token.type = EOF;
+                            token.isReady = true; // There is data at EOF
+                            return token;
+                        }
+                        if (readEndOfLine(c)) {
+                            token.type = EORECORD;
+                            return token;
+                        }
+                        if (!Character.isWhitespace((char)c)) {
+                            // error invalid char between token and next delimiter
+                            throw new IOException("(line " + getCurrentLineNumber() +
+                                    ") invalid char between encapsulated token and delimiter");
+                        }
+                    }
+                }
+            } else if (isEndOfFile(c)) {
+                // error condition (end of file before end of token)
+                throw new IOException("(startline " + startLineNumber +
+                        ") EOF reached before encapsulated token finished");
+            } else {
+                // consume character
+                token.content.append((char) c);
+            }
+        }
+    }
+
+    /**
      * Parses a simple token.
-     * <p/>
+     * <p>
      * Simple token are tokens which are not surrounded by encapsulators. A simple token might contain escaped
      * delimiters (as \, or \;). The token is finished when one of the following conditions become true:
+     * </p>
      * <ul>
      * <li>end of line has been reached (EORECORD)</li>
      * <li>end of stream has been reached (EOF)</li>
@@ -197,19 +405,26 @@ final class Lexer implements Closeable {
             if (readEndOfLine(ch)) {
                 token.type = EORECORD;
                 break;
-            } else if (isEndOfFile(ch)) {
+            }
+            if (isEndOfFile(ch)) {
                 token.type = EOF;
                 token.isReady = true; // There is data at EOF
                 break;
-            } else if (isDelimiter(ch)) {
+            }
+            if (isDelimiter(ch)) {
                 token.type = TOKEN;
                 break;
-            } else if (isEscape(ch)) {
-                final int unescaped = readEscape();
-                if (unescaped == END_OF_STREAM) { // unexpected char after escape
-                    token.content.append((char) ch).append((char) reader.getLastChar());
+            }
+            if (isEscape(ch)) {
+                if (isEscapeDelimiter()) {
+                    token.content.append(delimiter);
                 } else {
-                    token.content.append((char) unescaped);
+                    final int unescaped = readEscape();
+                    if (unescaped == END_OF_STREAM) { // unexpected char after escape
+                        token.content.append((char) ch).append((char) reader.getLastChar());
+                    } else {
+                        token.content.append((char) unescaped);
+                    }
                 }
                 ch = reader.read(); // continue
             } else {
@@ -226,96 +441,30 @@ final class Lexer implements Closeable {
     }
 
     /**
-     * Parses an encapsulated token.
-     * <p/>
-     * Encapsulated tokens are surrounded by the given encapsulating-string. The encapsulator itself might be included
-     * in the token using a doubling syntax (as "", '') or using escaping (as in \", \'). Whitespaces before and after
-     * an encapsulated token are ignored. The token is finished when one of the following conditions become true:
-     * <ul>
-     * <li>an unescaped encapsulator has been reached, and is followed by optional whitespace then:</li>
-     * <ul>
-     * <li>delimiter (TOKEN)</li>
-     * <li>end of line (EORECORD)</li>
-     * </ul>
-     * <li>end of stream has been reached (EOF)</li> </ul>
+     * Greedily accepts \n, \r and \r\n This checker consumes silently the second control-character...
      *
-     * @param token
-     *            the current token
-     * @return a valid token object
-     * @throws IOException
-     *             on invalid state: EOF before closing encapsulator or invalid character before delimiter or EOL
+     * @return true if the given or next character is a line-terminator
      */
-    private Token parseEncapsulatedToken(final Token token) throws IOException {
-        // save current line number in case needed for IOE
-        final long startLineNumber = getCurrentLineNumber();
-        int c;
-        while (true) {
-            c = reader.read();
-
-            if (isEscape(c)) {
-                final int unescaped = readEscape();
-                if (unescaped == END_OF_STREAM) { // unexpected char after escape
-                    token.content.append((char) c).append((char) reader.getLastChar());
-                } else {
-                    token.content.append((char) unescaped);
-                }
-            } else if (isQuoteChar(c)) {
-                if (isQuoteChar(reader.lookAhead())) {
-                    // double or escaped encapsulator -> add single encapsulator to token
-                    c = reader.read();
-                    token.content.append((char) c);
-                } else {
-                    // token finish mark (encapsulator) reached: ignore whitespace till delimiter
-                    while (true) {
-                        c = reader.read();
-                        if (isDelimiter(c)) {
-                            token.type = TOKEN;
-                            return token;
-                        } else if (isEndOfFile(c)) {
-                            token.type = EOF;
-                            token.isReady = true; // There is data at EOF
-                            return token;
-                        } else if (readEndOfLine(c)) {
-                            token.type = EORECORD;
-                            return token;
-                        } else if (!isWhitespace(c)) {
-                            // error invalid char between token and next delimiter
-                            throw new IOException("(line " + getCurrentLineNumber() +
-                                    ") invalid char between encapsulated token and delimiter");
-                        }
-                    }
-                }
-            } else if (isEndOfFile(c)) {
-                // error condition (end of file before end of token)
-                throw new IOException("(startline " + startLineNumber +
-                        ") EOF reached before encapsulated token finished");
-            } else {
-                // consume character
-                token.content.append((char) c);
+    boolean readEndOfLine(int ch) throws IOException {
+        // check if we have \r\n...
+        if (ch == CR && reader.lookAhead() == LF) {
+            // note: does not change ch outside of this method!
+            ch = reader.read();
+            // Save the EOL state
+            if (firstEol == null) {
+                this.firstEol = Constants.CRLF;
             }
         }
-    }
+        // save EOL state here.
+        if (firstEol == null) {
+            if (ch == LF) {
+                this.firstEol = LF_STRING;
+            } else if (ch == CR) {
+                this.firstEol = CR_STRING;
+            }
+        }
 
-    private char mapNullToDisabled(final @Nullable Character c) {
-        return c == null ? DISABLED : c.charValue();
-    }
-
-    /**
-     * Returns the current line number
-     *
-     * @return the current line number
-     */
-    long getCurrentLineNumber() {
-        return reader.getCurrentLineNumber();
-    }
-
-    /**
-     * Returns the current character position
-     *
-     * @return the current character position
-     */
-    long getCharacterPosition() {
-        return reader.getPosition();
+        return ch == LF || ch == CR;
     }
 
     // TODO escape handling needs more work
@@ -370,94 +519,5 @@ final class Lexer implements Closeable {
         if (length != buffer.length()) {
             buffer.setLength(length);
         }
-    }
-
-    /**
-     * Greedily accepts \n, \r and \r\n This checker consumes silently the second control-character...
-     *
-     * @return true if the given or next character is a line-terminator
-     */
-    boolean readEndOfLine(int ch) throws IOException {
-        // check if we have \r\n...
-        if (ch == CR && reader.lookAhead() == LF) {
-            // note: does not change ch outside of this method!
-            ch = reader.read();
-            // Save the EOL state
-            if (firstEol == null) {
-                this.firstEol = Constants.CRLF;
-            }
-        }
-        // save EOL state here.
-        if (firstEol == null) {
-            if (ch == LF) {
-                this.firstEol = LF_STRING;
-            } else if (ch == CR) {
-                this.firstEol = CR_STRING;
-            }
-        }
-
-        return ch == LF || ch == CR;
-    }
-
-    boolean isClosed() {
-        return reader.isClosed();
-    }
-
-    /**
-     * @return true if the given char is a whitespace character
-     */
-    boolean isWhitespace(final int ch) {
-        return !isDelimiter(ch) && Character.isWhitespace((char) ch);
-    }
-
-    /**
-     * Checks if the current character represents the start of a line: a CR, LF or is at the start of the file.
-     *
-     * @param ch the character to check
-     * @return true if the character is at the start of a line.
-     */
-    boolean isStartOfLine(final int ch) {
-        return ch == LF || ch == CR || ch == UNDEFINED;
-    }
-
-    /**
-     * @return true if the given character indicates end of file
-     */
-    boolean isEndOfFile(final int ch) {
-        return ch == END_OF_STREAM;
-    }
-
-    boolean isDelimiter(final int ch) {
-        return ch == delimiter;
-    }
-
-    boolean isEscape(final int ch) {
-        return ch == escape;
-    }
-
-    boolean isQuoteChar(final int ch) {
-        return ch == quoteChar;
-    }
-
-    boolean isCommentStart(final int ch) {
-        return ch == commentStart;
-    }
-
-    private boolean isMetaChar(final int ch) {
-        return ch == delimiter ||
-               ch == escape ||
-               ch == quoteChar ||
-               ch == commentStart;
-    }
-
-    /**
-     * Closes resources.
-     *
-     * @throws IOException
-     *             If an I/O error occurs
-     */
-    @Override
-    public void close() throws IOException {
-        reader.close();
     }
 }
