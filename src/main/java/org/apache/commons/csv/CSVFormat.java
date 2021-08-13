@@ -17,6 +17,7 @@
 
 package org.apache.commons.csv;
 
+import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.AssertNonNullIfNonNull;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
@@ -203,15 +204,15 @@ public final class CSVFormat implements Serializable {
 
         private boolean autoFlush;
 
-        private Character commentMarker;
+        private @Nullable Character commentMarker;
 
         private String delimiter;
 
-        private Character escapeCharacter;
+        private @Nullable Character escapeCharacter;
 
-        private String[] headerComments;
+        private @Nullable String @Nullable [] headerComments;
 
-        private String[] headers;
+        private String @Nullable[] headers;
 
         private boolean ignoreEmptyLines;
 
@@ -219,15 +220,15 @@ public final class CSVFormat implements Serializable {
 
         private boolean ignoreSurroundingSpaces;
 
-        private String nullString;
+        private @Nullable String nullString;
 
-        private Character quoteCharacter;
+        private @Nullable Character quoteCharacter;
 
         private String quotedNullString;
 
-        private QuoteMode quoteMode;
+        private @Nullable QuoteMode quoteMode;
 
-        private String recordSeparator;
+        private @Nullable String recordSeparator;
 
         private boolean skipHeaderRecord;
 
@@ -324,7 +325,7 @@ public final class CSVFormat implements Serializable {
          * @return This instance.
          * @throws IllegalArgumentException thrown if the specified character is a line break
          */
-        public Builder setCommentMarker(final Character commentMarker) {
+        public Builder setCommentMarker(final @Nullable Character commentMarker) {
             if (isLineBreak(commentMarker)) {
                 throw new IllegalArgumentException("The comment start marker character cannot be a line break");
             }
@@ -375,7 +376,7 @@ public final class CSVFormat implements Serializable {
          * @return This instance.
          * @throws IllegalArgumentException thrown if the specified character is a line break
          */
-        public Builder setEscape(final Character escapeCharacter) {
+        public Builder setEscape(final @Nullable Character escapeCharacter) {
             if (isLineBreak(escapeCharacter)) {
                 throw new IllegalArgumentException("The escape character cannot be a line break");
             }
@@ -404,10 +405,11 @@ public final class CSVFormat implements Serializable {
          * @param headerEnum the enum defining the header, {@code null} if disabled, empty if parsed automatically, user specified otherwise.
          * @return This instance.
          */
-        public Builder setHeader(final Class<? extends Enum<?>> headerEnum) {
+        public Builder setHeader(final @Nullable Class<? extends Enum<?>> headerEnum) {
             String[] header = null;
             if (headerEnum != null) {
-                final Enum<?>[] enumValues = headerEnum.getEnumConstants();
+                @SuppressWarnings({"dereference.of.nullable", "assignment"})  // headerEnum is an enum, so getEnumConstants is non-null
+                final Enum<?> @NonNull [] enumValues = headerEnum.getEnumConstants();
                 header = new String[enumValues.length];
                 for (int i = 0; i < enumValues.length; i++) {
                     header[i] = enumValues[i].name();
@@ -436,7 +438,7 @@ public final class CSVFormat implements Serializable {
          * @return This instance.
          * @throws SQLException SQLException if a database access error occurs or this method is called on a closed result set.
          */
-        public Builder setHeader(final ResultSet resultSet) throws SQLException {
+        public Builder setHeader(final @Nullable ResultSet resultSet) throws SQLException {
             return setHeader(resultSet != null ? resultSet.getMetaData() : null);
         }
 
@@ -460,7 +462,7 @@ public final class CSVFormat implements Serializable {
          * @return This instance.
          * @throws SQLException SQLException if a database access error occurs or this method is called on a closed result set.
          */
-        public Builder setHeader(final ResultSetMetaData resultSetMetaData) throws SQLException {
+        public Builder setHeader(final @Nullable ResultSetMetaData resultSetMetaData) throws SQLException {
             String[] labels = null;
             if (resultSetMetaData != null) {
                 final int columnCount = resultSetMetaData.getColumnCount();
@@ -491,7 +493,7 @@ public final class CSVFormat implements Serializable {
          * @param header the header, {@code null} if disabled, empty if parsed automatically, user specified otherwise.
          * @return This instance.
          */
-        public Builder setHeader(final String... header) {
+        public Builder setHeader(final String @Nullable ... header) {
             this.headers = CSVFormat.clone(header);
             return this;
         }
@@ -506,7 +508,7 @@ public final class CSVFormat implements Serializable {
          * @param headerComments the headerComments which will be printed by the Printer before the actual CSV data.
          * @return This instance.
          */
-        public Builder setHeaderComments(final Object... headerComments) {
+        public Builder setHeaderComments(final @Nullable Object @Nullable ... headerComments) {
             this.headerComments = CSVFormat.clone(toStringArray(headerComments));
             return this;
         }
@@ -521,7 +523,7 @@ public final class CSVFormat implements Serializable {
          * @param headerComments the headerComments which will be printed by the Printer before the actual CSV data.
          * @return This instance.
          */
-        public Builder setHeaderComments(final String... headerComments) {
+        public Builder setHeaderComments(final @Nullable String @Nullable ... headerComments) {
             this.headerComments = CSVFormat.clone(headerComments);
             return this;
         }
@@ -572,7 +574,7 @@ public final class CSVFormat implements Serializable {
          * @param nullString the String to convert to and from {@code null}. No substitution occurs if {@code null}.
          * @return This instance.
          */
-        public Builder setNullString(final String nullString) {
+        public Builder setNullString(final @Nullable String nullString) {
             this.nullString = nullString;
             this.quotedNullString = quoteCharacter + nullString + quoteCharacter;
             return this;
@@ -595,7 +597,7 @@ public final class CSVFormat implements Serializable {
          * @param quoteCharacter the quote character, use {@code null} to disable.
          * @return This instance.
          */
-        public Builder setQuote(final Character quoteCharacter) {
+        public Builder setQuote(final @Nullable Character quoteCharacter) {
             if (isLineBreak(quoteCharacter)) {
                 throw new IllegalArgumentException("The quoteChar cannot be a line break");
             }
@@ -1161,7 +1163,7 @@ public final class CSVFormat implements Serializable {
      * @return the cloned array.
      */
     @SafeVarargs
-    static <T> T[] clone(final T... values) {
+    static <T> T @PolyNull [] clone(final T @PolyNull ... values) {
         return values == null ? null : values.clone();
     }
 
@@ -1231,7 +1233,8 @@ public final class CSVFormat implements Serializable {
                 true);
     }
 
-    private @Nullable String @Nullable [] toStringArray(@UnknownInitialization(java.lang.Object.class) @NonNull CSVFormat this, final @Nullable Object @Nullable [] values) {
+    @SuppressWarnings("nullness:argument")  // Objects.toString(..., ...) needs @PolyNull (has it after CF 3.17.0)
+    static @Nullable String @PolyNull [] toStringArray(final @Nullable Object @PolyNull [] values) {
         if (values == null) {
             return null;
         }
@@ -1284,7 +1287,7 @@ public final class CSVFormat implements Serializable {
 
     private final String @MonotonicNonNull [] header; // array of header column names
 
-    private final @Nullable String @MonotonicNonNull [] headerComments; // array of header comment lines
+    private final @Nullable String @Nullable [] headerComments; // array of header comment lines
 
     private final boolean ignoreEmptyLines;
 
@@ -1353,7 +1356,7 @@ public final class CSVFormat implements Serializable {
      * @param autoFlush               TODO Doc me.
      * @throws IllegalArgumentException if the delimiter is a line break character.
      */
-    @SuppressWarnings("nullness:assignment.type.incompatible") // initializing @MonotonicNonNull: https://github.com/typetools/checker-framework/issues/2215
+    @SuppressWarnings("nullness:assignment") // initializing @MonotonicNonNull: https://github.com/typetools/checker-framework/issues/2215
     private CSVFormat(final String delimiter, final @Nullable Character quoteChar, final @Nullable QuoteMode quoteMode,
             final @Nullable Character commentStart, final @Nullable Character escape, final boolean ignoreSurroundingSpaces,
             final boolean ignoreEmptyLines, final @Nullable String recordSeparator, final @Nullable String nullString,
@@ -1514,6 +1517,7 @@ public final class CSVFormat implements Serializable {
      *
      * @return the delimiter.
      */
+    @Pure
     public String getDelimiterString() {
         return delimiter;
     }
@@ -1547,7 +1551,7 @@ public final class CSVFormat implements Serializable {
     @AssertNonNullIfNonNull("headerComments")
     @Pure // not actually pure, but pure up to .equals, and this suppresses a warning elsewhere
     @SuppressWarnings("nullness") // return @MonotonicNonNull field: https://github.com/typetools/checker-framework/issues/2216
-    public @Nullable String @MonotonicNonNull [] getHeaderComments() {
+    public @Nullable String @Nullable [] getHeaderComments() {
         return headerComments != null ? headerComments.clone() : null;
     }
 
@@ -1873,7 +1877,7 @@ public final class CSVFormat implements Serializable {
         return print(Files.newBufferedWriter(out, charset));
     }
 
-    @SuppressWarnings("contracts.precondition.not.satisfied") // Maybe a bug in commmons-csv:
+    @SuppressWarnings("contracts.precondition") // Maybe a bug in commmons-csv:
     // if quoteCharacter==NONE and isEscapeCharacterSet()==false, an exception is thrown.
     private void print(final Reader reader, final Appendable out, final boolean newRecord) throws IOException {
         // Reader is never null
@@ -2588,7 +2592,7 @@ public final class CSVFormat implements Serializable {
      * @deprecated Use {@link Builder#setHeaderComments(Object...)}
      */
     @Deprecated
-    public CSVFormat withHeaderComments(final Object... headerComments) {
+    public CSVFormat withHeaderComments(final @Nullable Object @Nullable ... headerComments) {
         return builder().setHeaderComments(headerComments).build();
     }
 

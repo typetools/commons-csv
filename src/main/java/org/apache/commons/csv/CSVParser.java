@@ -148,7 +148,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
     class CSVRecordIterator implements Iterator<CSVRecord> {
         private @Nullable CSVRecord current;
 
-        @SuppressWarnings("contracts.precondition.not.satisfied")  // TODO: how to express @RequiresNonNull({"CSVParser.this.format"})
+        // @SuppressWarnings("contracts.precondition")  // TODO: how to express @RequiresNonNull({"CSVParser.this.format"})
         private @Nullable CSVRecord getNextRecord() {
             try {
                 return CSVParser.this.nextRecord();
@@ -437,13 +437,14 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
         this.format = format.copy();
         this.lexer = new Lexer(format, new ExtendedBufferedReader(reader));
         this.csvRecordIterator = new CSVRecordIterator();
-        this.headers = createHeaders();
+        @SuppressWarnings("method.invocation")  // receiver is not yet initialized; likely bug; see comment at createHeaders.
+        Headers _headers = createHeaders();
+        this.headers = _headers;
         this.characterOffset = characterOffset;
         this.recordNumber = recordNumber - 1;
     }
 
-    @RequiresNonNull("format")
-    private void addRecordValue(@UnknownInitialization(Object.class) CSVParser this, final boolean lastRecord) {
+    private void addRecordValue(final boolean lastRecord) {
         final String input = this.reusableToken.content.toString();
         final String inputClean = this.format.getTrim() ? input.trim() : input;
         if (lastRecord && inputClean.isEmpty() && this.format.getTrailingDelimiter()) {
@@ -478,8 +479,8 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * @return null if the format has no header.
      * @throws IOException if there is a problem reading the header or skipping the first record
      */
-    @RequiresNonNull({"format", "lexer"})
-    private Headers createHeaders(@UnknownInitialization(Object.class) CSVParser this) throws IOException {
+    // Possible bug in commons-csv: This is called from the constructor, when characterOffset and recordNumber are not yet set.  This method calls nextRecord(), which reads characterOffset.
+    private Headers createHeaders() throws IOException {
         Map<String, Integer> hdrMap = null;
         List<String> headerNames = null;
         final String[] formatHeader = this.format.getHeader();
@@ -648,7 +649,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      *           the cell data to further processed
      * @return null if input is parsed as null, or input itself if input isn't parsed as null
      */
-    private String handleNull(final String input) {
+    private @Nullable String handleNull(final String input) {
         final boolean isQuoted = this.reusableToken.isQuoted;
         final String nullString = format.getNullString();
         final boolean strictQuoteMode = isStrictQuoteMode();
@@ -704,8 +705,7 @@ public final class CSVParser implements Iterable<CSVRecord>, Closeable {
      * @throws IOException
      *             on parse error or input read-failure
      */
-    @RequiresNonNull({"lexer", "format"})
-    @Nullable CSVRecord nextRecord(@UnknownInitialization(Object.class) CSVParser this) throws IOException {
+    @Nullable CSVRecord nextRecord() throws IOException {
         CSVRecord result = null;
         this.recordList.clear();
         StringBuilder sb = null;

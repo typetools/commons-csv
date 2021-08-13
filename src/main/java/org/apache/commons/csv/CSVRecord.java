@@ -227,6 +227,7 @@ public final class CSVRecord implements Serializable, Iterable<@Nullable String>
      *            the name of the column to be retrieved.
      * @return whether a given column is mapped.
      */
+    @SuppressWarnings({"expression.unparsable", "flowexpr.parse.error", "contracts.conditional.postcondition"})  // https://github.com/typetools/checker-framework/issues/4858
     @EnsuresKeyForIf(expression="#1", map="getHeaderMapRaw()", result=true)
     @EnsuresNonNullIf(expression="getHeaderMapRaw()", result=true)
     public boolean isMapped(final String name) {
@@ -253,6 +254,7 @@ public final class CSVRecord implements Serializable, Iterable<@Nullable String>
      *            the name of the column to be retrieved.
      * @return whether a given columns is mapped and has a value
      */
+    @SuppressWarnings({"expression.unparsable", "flowexpr.parse.error.postcondition", "dereference.of.nullable"})  // https://github.com/typetools/checker-framework/issues/4858
     public boolean isSet(final String name) {
         return isMapped(name) && getHeaderMapRaw().get(name).intValue() < values.length;
     }
@@ -275,6 +277,7 @@ public final class CSVRecord implements Serializable, Iterable<@Nullable String>
      * @return the given map.
      * @since 1.9.0
      */
+    @SuppressWarnings({"lambda.param", "expression.unparsable"})  // https://github.com/typetools/checker-framework/issues/4858
     public <M extends Map<String, @Nullable String>> M putIn(final M map) {
         if (getHeaderMapRaw() == null) {
             return map;
@@ -303,7 +306,7 @@ public final class CSVRecord implements Serializable, Iterable<@Nullable String>
      * @return the new stream.
      * @since 1.9.0
      */
-    public Stream<String> stream() {
+    public Stream<@Nullable String> stream() {
         return Stream.of(values);
     }
 

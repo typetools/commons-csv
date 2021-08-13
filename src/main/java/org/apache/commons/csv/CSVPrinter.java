@@ -191,7 +191,7 @@ public final class CSVPrinter implements Flushable, Closeable {
      *             If an I/O error occurs
      */
     @SuppressWarnings("nullness") // getCommentMarker() isn't affected by side effects in this method
-    public void printComment(final String comment) throws IOException {
+    public void printComment(final @Nullable String comment) throws IOException {
         if (comment == null || !format.isCommentMarkerSet()) {
             return;
         }
@@ -229,6 +229,7 @@ public final class CSVPrinter implements Flushable, Closeable {
      * @throws SQLException If a database access error occurs or this method is called on a closed result set.
      * @since 1.9.0
      */
+    @SuppressWarnings("nullness:argument")  // getHeader() returns non-null because setHeader() was called on non-null
     public void printHeaders(final ResultSet resultSet) throws IOException, SQLException {
         printRecord((Object[]) format.builder().setHeader(resultSet).build().getHeader());
     }

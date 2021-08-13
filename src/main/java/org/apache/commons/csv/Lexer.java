@@ -17,8 +17,10 @@
 
 package org.apache.commons.csv;
 
+import org.checkerframework.checker.initialization.qual.UnknownInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+
 import static org.apache.commons.csv.Constants.BACKSPACE;
 import static org.apache.commons.csv.Constants.CR;
 import static org.apache.commons.csv.Constants.END_OF_STREAM;
@@ -200,7 +202,7 @@ final class Lexer implements Closeable {
         return ch == LF || ch == CR || ch == UNDEFINED;
     }
 
-    private char mapNullToDisabled(final @Nulable Character c) {
+    private char mapNullToDisabled(@UnknownInitialization Lexer this, final @Nullable Character c) {
         return c == null ? DISABLED : c.charValue();
     }
 
