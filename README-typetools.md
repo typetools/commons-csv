@@ -21,7 +21,7 @@ Commit and push changes, wait for CI jobs to pass.
 At https://github.com/apache/commons-csv/releases ,
 find the commit corresponding to a public release.
 
-Commons CSV version 1.8 is commit 660f7c9f853092ec8abf5d6c81d260e3c80c2194
+Commons CSV version 1.9.0 is commit 8e25a2b30cae841101540c26ff21b79c51ad3eff
 
 Update the PACKAGE environment variable below and file cfMavenCentral.xml .
 
@@ -45,7 +45,7 @@ This must be done on a CSE machine, which has access to the necessary passwords.
 
 # Ensure you are using JDK 8.
 
-PACKAGE=commons-csv-1.8 && \
+PACKAGE=commons-csv-1.9.0 && \
 mvn -B -Dmaven.test.skip=true package && \
 mvn source:jar && \
 mvn javadoc:javadoc && (cd target/site/apidocs && jar -cf ${PACKAGE}-javadoc.jar org)
