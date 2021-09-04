@@ -71,7 +71,7 @@
     <dependency>
       <groupId>org.checkerframework</groupId>
       <artifactId>checker-qual</artifactId>
-      <version>3.17.0</version>
+      <version>3.18.0</version>
     </dependency>
     <dependency>
       <groupId>com.google.errorprone</groupId>
@@ -601,7 +601,7 @@
                 <path>
                   <groupId>org.checkerframework</groupId>
                   <artifactId>checker</artifactId>
-                  <version>3.17.0</version>
+                  <version>3.18.0</version>
                 </path>
               </annotationProcessorPaths>
               <annotationProcessors>
@@ -619,7 +619,7 @@
         <dependency>
           <groupId>org.checkerframework</groupId>
           <artifactId>checker</artifactId>
-          <version>3.17.0</version>
+          <version>3.18.0</version>
         </dependency>
       </dependencies>
     </profile>

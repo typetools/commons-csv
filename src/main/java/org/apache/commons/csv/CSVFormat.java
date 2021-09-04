@@ -1233,7 +1233,6 @@ public final class CSVFormat implements Serializable {
                 true);
     }
 
-    @SuppressWarnings("nullness:argument")  // Objects.toString(..., ...) needs @PolyNull (has it after CF 3.17.0)
     static @Nullable String @PolyNull [] toStringArray(final @Nullable Object @PolyNull [] values) {
         if (values == null) {
             return null;
