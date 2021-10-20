@@ -40,7 +40,7 @@ This must be done on a CSE machine, which has access to the necessary passwords.
 
 # Set the version number:
 #  * in file cfMavenCentral.xml
-#  * in file pom.xml (if different from upstream)
+#  * in file pom.xml (if different from upstream; regardless, remove "-SNAPSHOT")
 #  * environment variable PACKAGE below
 
 # Ensure you are using JDK 8.
