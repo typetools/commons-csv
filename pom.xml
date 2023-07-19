@@ -303,7 +303,7 @@
             <path>
               <groupId>org.checkerframework</groupId>
               <artifactId>checker</artifactId>
-              <version>3.1.1</version>
+              <version>3.17.0</version>
             </path>
           </annotationProcessorPaths>
           <annotationProcessors>
@@ -601,7 +601,7 @@
                 <path>
                   <groupId>org.checkerframework</groupId>
                   <artifactId>checker</artifactId>
-                  <version>3.18.0</version>
+                  <version>3.17.0</version>
                 </path>
               </annotationProcessorPaths>
               <annotationProcessors>
@@ -619,7 +619,7 @@
         <dependency>
           <groupId>org.checkerframework</groupId>
           <artifactId>checker</artifactId>
-          <version>3.18.0</version>
+          <version>3.17.0</version>
         </dependency>
       </dependencies>
     </profile>
